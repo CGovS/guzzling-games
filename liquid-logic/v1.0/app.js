@@ -157,7 +157,7 @@ class LiquidLogicV6 {
     const available = await this.net.probe();
     if (!available) {
       toggle.disabled = true;
-      if (hint) hint.textContent = 'Run the local buzzer server (npm start) to enable phone buzzers.';
+      if (hint) hint.textContent = 'Phone buzzers need Liquid Logic running locally on a computer (free LAN server) — everyone joins over the same WiFi. On this website, use keyboard buzzers + moderated mode.';
       return;
     }
 
