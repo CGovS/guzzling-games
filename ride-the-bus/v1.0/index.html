@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ride the Bus</title>
+<meta name="description" content="Ride the Bus — the four-card drinking gauntlet. Red or black, higher or lower, inside or outside, guess the suit." />
+<meta name="google-site-verification" content="RNACaTIJi-mOSihpzI2Iwtfzc6Ushb3ChMxEcWt4HpU" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0d0d12;--soft:#16161f;--line:rgba(255,255,255,.12);--text:#f3f3f5;--muted:rgba(243,243,245,.6);--accent:#3498db;--red:#e74c3c;--green:#2ecc71}
+  body{font-family:'Oswald',system-ui,sans-serif;background:radial-gradient(1000px 500px at 50% -10%,#1b2433 0,transparent 60%),var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:34px 16px 8px}
+  .brand{font-family:'Press Start 2P',monospace;font-size:clamp(16px,4vw,26px);color:var(--accent)}
+  .sub{color:var(--muted);margin-top:10px;font-size:14px}
+  a.back{position:fixed;top:14px;left:16px;color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:6px 12px;border-radius:20px}
+  main{width:100%;max-width:560px;padding:20px;flex:1;display:flex;flex-direction:column;align-items:center;gap:22px}
+
+  /* setup */
+  .panel{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:20px;width:100%}
+  .panel h2{font-size:18px;margin-bottom:14px;font-weight:500}
+  .players-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .players-list input{width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);background:#0e0e15;color:var(--text);font-family:inherit;font-size:15px}
+  .row{display:flex;gap:10px}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:15px;font-weight:600;padding:12px 16px;color:#fff;background:#2a2a38}
+  button.primary{background:var(--accent)}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  button:active{transform:scale(.97)}
+  button:disabled{opacity:.4;cursor:default}
+
+  /* game */
+  .turn-label{font-size:16px;color:var(--muted)}
+  .turn-name{font-weight:700;color:var(--accent);font-size:22px}
+  .stage-track{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .stage-dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
+  .stage-dot.done{background:var(--green);border-color:var(--green);color:#06281a}
+  .stage-dot.current{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(52,152,219,.5)}
+
+  .prompt{font-size:20px;text-align:center;min-height:26px}
+  .cards{display:flex;gap:10px;justify-content:center;min-height:128px;align-items:center}
+  .card{width:84px;height:120px;border-radius:10px;background:#fff;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;box-shadow:0 8px 20px rgba(0,0,0,.5);position:relative}
+  .card.red{color:#d11}
+  .card .rank{font-size:30px;line-height:1}
+  .card .suit{font-size:26px}
+  .card.back{background:linear-gradient(135deg,#2c4a7a,#162a4a);color:#7da7d8}
+  .card.placeholder{background:transparent;border:2px dashed var(--line);box-shadow:none}
+  .choices{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;width:100%}
+  .choices button{min-width:120px}
+  .result{text-align:center;font-size:18px;min-height:24px;font-weight:600}
+  .result.good{color:var(--green)}
+  .result.bad{color:var(--red)}
+  .drink{font-size:22px;color:var(--red);font-weight:700}
+  footer{color:var(--muted);font-size:12px;padding:24px;text-align:center}
+  .hidden{display:none}
+  /* shared: rules button, modal, ad slot, legal footer */
+  .rules-btn{position:fixed;top:14px;right:16px;z-index:6;font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:7px 14px;border-radius:20px}
+  .rules-btn:active{transform:scale(.97)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,5,9,.88);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;z-index:100}
+  .modal-overlay.hidden{display:none}
+  .modal{background:var(--soft);border:1px solid var(--line);border-radius:16px;max-width:640px;width:100%;padding:22px 22px 26px;position:relative}
+  .modal h2{font-family:'Press Start 2P',monospace;font-size:15px;color:var(--accent);margin-bottom:14px}
+  .modal h3{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--text);margin:16px 0 4px}
+  .modal p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:8px}
+  .modal .close-x{position:absolute;top:14px;right:16px;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-weight:600}
+  .ad-slot{width:100%;max-width:728px;min-height:90px;margin:20px auto 4px;background:#000;border:1px solid rgba(255,255,255,.05);border-radius:8px}
+  .site-footer{max-width:760px;margin:0 auto;padding:18px 18px 40px;color:var(--muted);font-size:11.5px;line-height:1.6;text-align:center}
+  .site-footer .cprt{color:var(--text);opacity:.85;font-size:12px;margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+<a class="back" href="../../v1.0/">All games</a>
+<button class="rules-btn" id="rules-open">Rules</button>
+<header>
+  <div class="brand">RIDE THE BUS</div>
+  <div class="sub">Four cards. Four guesses. Miss one and you drink — then start the bus over.</div>
+</header>
+
+<main>
+  <!-- SETUP -->
+  <section class="panel" id="setup">
+    <h2>Who's riding?</h2>
+    <div class="players-list" id="players-list"></div>
+    <div class="row">
+      <button class="ghost" id="add-player">+ Add player</button>
+      <button class="ghost" id="remove-player">− Remove</button>
+    </div>
+    <div style="height:14px"></div>
+    <button class="primary" id="start" style="width:100%">Start the bus</button>
+  </section>
+
+  <!-- GAME -->
+  <section class="panel hidden" id="game">
+    <div style="text-align:center;margin-bottom:14px">
+      <div class="turn-label">Now riding</div>
+      <div class="turn-name" id="turn-name">—</div>
+    </div>
+    <div class="stage-track" id="stage-track"></div>
+    <div style="height:18px"></div>
+    <div class="prompt" id="prompt">Red or Black?</div>
+    <div style="height:14px"></div>
+    <div class="cards" id="cards"></div>
+    <div style="height:14px"></div>
+    <div class="choices" id="choices"></div>
+    <div style="height:10px"></div>
+    <div class="result" id="result"></div>
+    <div style="height:8px"></div>
+    <button class="primary hidden" id="next" style="width:100%">Next</button>
+  </section>
+</main>
+
+<!-- reserved ad slot (kept blank for future use) -->
+<div class="ad-slot" aria-hidden="true"></div>
+<footer class="site-footer">
+  <div class="cprt">© 2026 Guzzling Games. All rights reserved.</div>
+  <p>Guzzling Games and its game names, rules, designs, and content are protected works. Unauthorized reproduction or distribution is prohibited.</p>
+  <p><strong>Drink responsibly.</strong> For entertainment only. You must be of legal drinking age (21+ in the U.S.) to consume alcohol — and you never have to: every game plays just as well with any non-alcoholic beverage. Never drink and drive. By using this site you agree the creators assume no liability for any injury, loss, or damage arising from its use. Play at your own risk.</p>
+</footer>
+
+<div class="modal-overlay hidden" id="rules-modal">
+  <div class="modal">
+    <button class="close-x" id="rules-close">Close</button>
+    <h2>HOW TO PLAY</h2>
+    <p>Get through four guesses in a row to make it off the bus. Miss one and you drink, then start the bus over from the first card.</p>
+    <h3>1 · Red or Black</h3><p>Guess the colour of the first card.</p>
+    <h3>2 · Higher or Lower</h3><p>Will the next card be higher or lower than your first? A tie is safe.</p>
+    <h3>3 · Inside or Outside</h3><p>Will the third card fall between your first two cards, or outside them? Landing on an edge is safe.</p>
+    <h3>4 · Pick the Suit</h3><p>Name the suit of the fourth card.</p>
+    <h3>Drinking</h3><p>Miss on a stage and you drink that many sips (stage 1 = 1 … stage 4 = 4), then the bus restarts. Clear all four and you're off the bus — hand out 4 sips to whoever you like.</p>
+  </div>
+</div>
+<script>
+(function(){var o=document.getElementById('rules-open'),m=document.getElementById('rules-modal'),c=document.getElementById('rules-close');
+o.onclick=function(){m.classList.remove('hidden');};c.onclick=function(){m.classList.add('hidden');};
+m.onclick=function(e){if(e.target===m)m.classList.add('hidden');};})();
+</script>
+
+<script>
+(function(){
+  const SUITS=[{s:'\u2660',red:false},{s:'\u2663',red:false},{s:'\u2665',red:true},{s:'\u2666',red:true}];
+  const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const RVAL={A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
+
+  function freshDeck(){
+    const d=[];
+    SUITS.forEach(su=>RANKS.forEach(r=>d.push({rank:r,suit:su.s,red:su.red,val:RVAL[r]})));
+    for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    return d;
+  }
+
+  const STAGES=[
+    {name:'Red or Black?',choices:['Red','Black']},
+    {name:'Higher or Lower?',choices:['Higher','Lower']},
+    {name:'Inside or Outside?',choices:['Inside','Outside']},
+    {name:'Pick the Suit',choices:['\u2660 Spades','\u2663 Clubs','\u2665 Hearts','\u2666 Diamonds']},
+  ];
+
+  const els={
+    setup:document.getElementById('setup'),game:document.getElementById('game'),
+    playersList:document.getElementById('players-list'),turnName:document.getElementById('turn-name'),
+    stageTrack:document.getElementById('stage-track'),prompt:document.getElementById('prompt'),
+    cards:document.getElementById('cards'),choices:document.getElementById('choices'),
+    result:document.getElementById('result'),next:document.getElementById('next'),
+  };
+
+  let players=['Player 1','Player 2'];
+  const state={players:[],idx:0,stage:0,deck:[],drawn:[]};
+
+  // ── setup ──
+  function renderPlayers(){
+    els.playersList.innerHTML='';
+    players.forEach((p,i)=>{
+      const inp=document.createElement('input');
+      inp.value=p;inp.placeholder='Player '+(i+1);
+      inp.addEventListener('input',e=>players[i]=e.target.value);
+      els.playersList.appendChild(inp);
+    });
+  }
+  document.getElementById('add-player').onclick=()=>{if(players.length<10){players.push('Player '+(players.length+1));renderPlayers();}};
+  document.getElementById('remove-player').onclick=()=>{if(players.length>1){players.pop();renderPlayers();}};
+  document.getElementById('start').onclick=startGame;
+
+  function startGame(){
+    state.players=players.map((p,i)=>p.trim()||('Player '+(i+1)));
+    state.idx=0;
+    els.setup.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    beginRide();
+  }
+
+  // ── a single player's ride ──
+  function beginRide(){
+    state.stage=0;state.deck=freshDeck();state.drawn=[];
+    els.turnName.textContent=state.players[state.idx];
+    els.result.textContent='';els.result.className='result';
+    els.next.classList.add('hidden');
+    renderStage();
+  }
+
+  function renderStageTrack(){
+    els.stageTrack.innerHTML='';
+    STAGES.forEach((st,i)=>{
+      const d=document.createElement('div');
+      d.className='stage-dot'+(i<state.stage?' done':'')+(i===state.stage?' current':'');
+      d.textContent=i+1;
+      els.stageTrack.appendChild(d);
+    });
+  }
+
+  function cardEl(card,faceUp){
+    const c=document.createElement('div');
+    if(!faceUp){c.className='card back';c.textContent='?';return c;}
+    c.className='card'+(card.red?' red':'');
+    c.innerHTML='<span class="rank">'+card.rank+'</span><span class="suit">'+card.suit+'</span>';
+    return c;
+  }
+
+  function renderCards(){
+    // show already-revealed cards + a face-down card for the upcoming guess
+    els.cards.innerHTML='';
+    state.drawn.forEach(c=>els.cards.appendChild(cardEl(c,true)));
+    if(state.stage<4){const b=document.createElement('div');b.className='card back';b.textContent='?';els.cards.appendChild(b);}
+  }
+
+  function renderStage(){
+    renderStageTrack();
+    const st=STAGES[state.stage];
+    els.prompt.textContent=st.name;
+    renderCards();
+    els.choices.innerHTML='';
+    st.choices.forEach(label=>{
+      const b=document.createElement('button');
+      b.className='primary';b.textContent=label;
+      b.onclick=()=>guess(label);
+      els.choices.appendChild(b);
+    });
+  }
+
+  function guess(label){
+    const card=state.deck.pop();
+    state.drawn.push(card);
+    // reveal
+    els.cards.innerHTML='';
+    state.drawn.forEach(c=>els.cards.appendChild(cardEl(c,true)));
+    els.choices.innerHTML='';
+
+    let correct=false;
+    if(state.stage===0){
+      correct=(label==='Red')===card.red;
+    }else if(state.stage===1){
+      const prev=state.drawn[0].val;
+      if(card.val===prev){correct=true;} // tie is safe
+      else correct=(label==='Higher')?(card.val>prev):(card.val<prev);
+    }else if(state.stage===2){
+      const a=state.drawn[0].val,b=state.drawn[1].val;
+      const lo=Math.min(a,b),hi=Math.max(a,b);
+      const inside=card.val>lo&&card.val<hi;
+      const onedge=card.val===lo||card.val===hi;
+      if(onedge){correct=true;} // landing on an edge is safe
+      else correct=(label==='Inside')?inside:!inside;
+    }else if(state.stage===3){
+      const suitChar=label.charAt(0);
+      correct=(card.suit===suitChar);
+    }
+
+    if(correct){
+      state.stage++;
+      if(state.stage>=4){
+        renderStageTrack();
+        els.result.textContent=state.players[state.idx]+' made it off the bus! Hand out 4 sips.';
+        els.result.className='result good';
+        els.next.classList.remove('hidden');
+        els.next.textContent=nextLabel();
+        els.next.onclick=advancePlayer;
+      }else{
+        els.result.textContent='Correct! Keep going.';
+        els.result.className='result good';
+        els.next.classList.remove('hidden');
+        els.next.textContent='Next card';
+        els.next.onclick=()=>{els.result.textContent='';els.next.classList.add('hidden');renderStage();};
+      }
+    }else{
+      const sips=state.stage+1;
+      els.result.innerHTML='Wrong! <span class="drink">Drink '+sips+'</span> — back to the start of the bus.';
+      els.result.className='result bad';
+      els.next.classList.remove('hidden');
+      els.next.textContent='Restart the bus';
+      els.next.onclick=()=>{beginRide();};
+    }
+  }
+
+  function nextLabel(){
+    return (state.idx+1<state.players.length)?('Next rider: '+state.players[state.idx+1]):'Back to start';
+  }
+  function advancePlayer(){
+    state.idx=(state.idx+1)%state.players.length;
+    beginRide();
+  }
+
+  renderPlayers();
+})();
+</script>
+</body>
+</html>
