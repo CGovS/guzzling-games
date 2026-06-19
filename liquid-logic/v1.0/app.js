@@ -157,7 +157,7 @@ class LiquidLogicV6 {
     const available = await this.net.probe();
     if (!available) {
       toggle.disabled = true;
-      if (hint) hint.textContent = 'Phone buzzers need Liquid Logic running locally on a computer (free LAN server) — everyone joins over the same WiFi. On this website, use keyboard buzzers + moderated mode.';
+      if (hint) hint.textContent = 'Phone buzzers are temporarily off on the live site — hosting them means paying to keep a server running 24/7. You can still use them for free by running Liquid Logic locally on a computer (everyone joins over the same WiFi). On this website, use keyboard buzzers + moderated mode.';
       return;
     }
 
