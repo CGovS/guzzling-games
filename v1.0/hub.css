@@ -31,16 +31,39 @@ body {
 }
 
 /* Header */
-.hub-header { text-align: center; padding: 88px 20px 30px; }
+.hub-header { text-align: center; padding: 88px 20px 30px; position: relative; }
 .hub-brand {
+  position: relative;
+  display: inline-block;
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-weight: 700;
-  font-size: clamp(34px, 8vw, 68px);
-  letter-spacing: -1.5px;
-  line-height: 1.02;
-  background: linear-gradient(100deg, var(--brand-c), var(--brand-a) 45%, var(--brand-b));
+  font-size: clamp(38px, 8.5vw, 78px);
+  letter-spacing: -2px;
+  line-height: 1.0;
+  background: linear-gradient(100deg, var(--brand-c), var(--brand-a) 42%, var(--brand-b) 78%, var(--brand-c));
+  background-size: 220% auto;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 22px rgba(99,102,241,0.45)) drop-shadow(0 2px 10px rgba(236,72,153,0.30));
+  animation: brand-flow 7s linear infinite;
+}
+/* soft halo behind the wordmark */
+.hub-brand::before {
+  content: "";
+  position: absolute; inset: -22% -8%;
+  z-index: -1;
+  background:
+    radial-gradient(60% 120% at 20% 50%, rgba(34,211,238,0.22), transparent 70%),
+    radial-gradient(60% 120% at 80% 50%, rgba(236,72,153,0.22), transparent 70%);
+  filter: blur(26px);
+  opacity: .9;
+  pointer-events: none;
+}
+@keyframes brand-flow {
+  to { background-position: 220% center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-brand { animation: none; }
 }
 .hub-tag {
   margin: 20px auto 0; max-width: 540px;
