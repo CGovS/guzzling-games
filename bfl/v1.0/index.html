@@ -444,7 +444,16 @@
   function render(){
     renderTeams();renderSchedule();renderStandings();renderStats();renderPlayoffs();
   }
-  render();
+
+  // Resume where the league left off: if a season exists, open the
+  // most relevant tab (Playoffs if started, else Season) instead of
+  // always landing on Teams. Data itself persists in localStorage.
+  function initialTab(){
+    if(L.playoff) return 'playoffs';
+    if(L.seasonGenerated) return 'schedule';
+    return 'teams';
+  }
+  selectTab(initialTab());
 })();
 </script>
 <script>
