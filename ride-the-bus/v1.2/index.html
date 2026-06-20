@@ -6,7 +6,7 @@
 <title>Ride the Bus</title>
 <meta name="description" content="Ride the Bus — the four-card drinking gauntlet. Red or black, higher or lower, inside or outside, guess the suit." />
 <meta name="google-site-verification" content="RNACaTIJi-mOSihpzI2Iwtfzc6Ushb3ChMxEcWt4HpU" />
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{--bg:#0d0d12;--soft:#16161f;--line:rgba(255,255,255,.12);--text:#f3f3f5;--muted:rgba(243,243,245,.6);--accent:#3498db;--red:#e74c3c;--green:#2ecc71}
@@ -57,11 +57,12 @@
   .gg-top{position:fixed;top:12px;right:14px;z-index:20;display:flex;gap:8px;align-items:center}
   .rules-btn{font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:7px 14px;border-radius:20px}
   .rules-btn:active{transform:scale(.97)}
-  .gg-lockup{position:fixed;top:12px;left:14px;z-index:20;display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-decoration:none}
-  .gg-flag{background:linear-gradient(135deg,#ffd33d,#ffb800);color:#3a2c00;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.5px;padding:4px 7px;border-radius:5px;box-shadow:0 3px 10px rgba(255,184,0,.4);transform:rotate(-2deg)}
-  .gg-id{display:flex;align-items:center;gap:7px}
-  .gg-logo{font-family:'Press Start 2P',monospace;font-size:9px;line-height:1.5;background:linear-gradient(135deg,#22d3ee,#6366f1 55%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
-  .gg-acro{font-family:'Press Start 2P',monospace;font-size:11px;color:#0b0b10;background:linear-gradient(135deg,#22d3ee,#6366f1 55%,#ec4899);padding:6px 7px;border-radius:8px;border:1.5px solid rgba(255,255,255,.25)}
+  .gg-lockup{position:fixed;top:12px;left:14px;z-index:20;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-decoration:none}
+  .gg-flag{font-family:'Oswald',system-ui,sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0b0b10;background:#ffd23f;padding:4px 9px;border-radius:2px;transform:rotate(-1.5deg);box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+  .gg-id{display:flex;align-items:center;gap:8px}
+  .gg-logo{font-family:'Anton','Oswald',sans-serif;font-weight:400;text-transform:uppercase;font-size:19px;line-height:.9;letter-spacing:.5px;color:#f6f1e7;text-shadow:2px 2px 0 #ff5a3c;white-space:nowrap}
+  .gg-logo .gm{color:#c2ff1f;text-shadow:2px 2px 0 rgba(0,0,0,.45)}
+  .gg-acro{font-family:'Anton','Oswald',sans-serif;font-size:14px;line-height:1;color:#0b0b10;background:#c2ff1f;padding:4px 7px 3px;border-radius:6px}
   .gg-lockup:active{transform:scale(.97)}
   .modal-overlay{position:fixed;inset:0;background:rgba(5,5,9,.88);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;z-index:100}
   .modal-overlay.hidden{display:none}
@@ -79,7 +80,7 @@
 <a class="gg-lockup" href="../../v1.2/" title="Guzzling Games — home" aria-label="Guzzling Games home">
   <span class="gg-flag">Pour &amp; Play</span>
   <span class="gg-id">
-    <span class="gg-logo">GUZZLING<br>GAMES</span>
+    <span class="gg-logo">GUZZLING <span class="gm">GAMES</span></span>
     <span class="gg-acro">RTB</span>
   </span>
 </a>

@@ -360,7 +360,7 @@ input:checked + .slider::before { transform: translateX(24px); background: #000;
   justify-content: space-between;
   align-items: center;
   background: var(--container);
-  padding: 10px 20px 10px 112px;
+  padding: 10px 20px 10px 210px;
   border-bottom: var(--bwidth) var(--bstyle) var(--border);
   position: sticky;
   top: 0;
