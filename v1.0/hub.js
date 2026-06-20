@@ -30,8 +30,8 @@ const GAMES = [
     accent: '#3498db',
   },
   {
-    title: 'BFL Stat Sheet',
-    blurb: 'Beer Football League tracker — hit/miss shooting stats, standings, and a season-to-playoff bracket.',
+    title: 'Beer Football League',
+    blurb: 'BFL league manager — enter scores (or track hit/miss shooting), with standings and a season-to-playoff bracket.',
     status: 'live',
     href: '../bfl/v1.0/',
     accent: '#e67e22',

@@ -60,6 +60,13 @@
   .hit{background:var(--green);color:#06281a}
   .miss{background:#3a2030;color:#ff9a8a;border:1px solid rgba(231,76,60,.4)}
   .undo{font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--line);padding:6px 8px}
+  .score-in{width:70px;font-size:30px;font-weight:700;text-align:center;background:#0e0e15;border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:inherit;padding:4px 2px}
+  .score-in:focus{outline:none;border-color:var(--accent)}
+  kbd{font-family:inherit;font-size:10px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.28);border-radius:4px;padding:0 4px;margin-left:4px;line-height:1.4}
+  .kbd-hint{text-align:center;color:var(--muted);font-size:11.5px;margin-top:12px}
+  .qrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .qsi{width:46px;text-align:center;padding:7px 4px;font-size:15px}
+  .qsi:focus{outline:none;border-color:var(--accent)}
   footer{color:var(--muted);font-size:12px;padding:24px;text-align:center}
   /* shared: rules button, modal, ad slot, legal footer */
   .rules-btn-h{font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:6px 12px;border-radius:20px}
@@ -79,7 +86,7 @@
 <body>
 <header>
   <span class="brand">BFL</span>
-  <span style="font-size:13px;color:var(--muted)">Beer Football League — Stat Sheet</span>
+  <span style="font-size:13px;color:var(--muted)">Beer Football League</span>
   <div class="row" style="gap:8px">
     <button class="rules-btn-h" id="rules-open">Rules</button>
     <a class="back" href="../../v1.0/">All games</a>
@@ -221,7 +228,7 @@
   function renderSchedule(){
     const el=document.getElementById('tab-schedule');
     if(!L.seasonGenerated){el.innerHTML='<h2>Season</h2><div class="empty">Add teams and generate a schedule from the Teams tab.</div>';return;}
-    let html='<h2>Regular Season</h2><p class="hint">Tap a matchup to track hits/misses and record the score.</p>';
+    let html='<h2>Regular Season</h2><p class="hint">Just type the final score and hit Save \u2014 standings update automatically. Or tap <b>Track</b> to log hit/miss shooting too.</p>';
     const byRound={};
     L.games.filter(g=>g.phase==='season').forEach(g=>{(byRound[g.round]=byRound[g.round]||[]).push(g);});
     Object.keys(byRound).sort((a,b)=>a-b).forEach(r=>{
@@ -240,7 +247,10 @@
     return '<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)">'+
       '<div style="flex:1"><span class="'+(hw?'pill win':'')+'">'+esc(h.name)+'</span> vs <span class="'+(aw?'pill win':'')+'">'+esc(a.name)+'</span></div>'+
       (done?'<div class="row" style="gap:10px"><b>'+g.homeScore+' &ndash; '+g.awayScore+'</b><button class="ghost" data-edit="'+g.id+'">Edit</button></div>'
-           :'<button class="primary" data-play="'+g.id+'">Track game</button>')+
+           :'<div class="qrow"><input class="qsi" type="number" min="0" inputmode="numeric" data-qh="'+g.id+'" placeholder="'+esc(h.name).slice(0,3)+'" aria-label="'+esc(h.name)+' score"> &ndash; '+
+             '<input class="qsi" type="number" min="0" inputmode="numeric" data-qa="'+g.id+'" placeholder="'+esc(a.name).slice(0,3)+'" aria-label="'+esc(a.name)+' score">'+
+             '<button class="green" data-qsave="'+g.id+'">Save</button>'+
+             '<button class="ghost" data-play="'+g.id+'">Track</button></div>')+
       '</div>';
   }
   function bindGameRows(el){
@@ -248,6 +258,27 @@
       const id=b.dataset.play||b.dataset.edit;
       b.onclick=()=>openTracker(id);
     });
+    el.querySelectorAll('[data-qsave]').forEach(b=>{
+      const id=b.dataset.qsave;
+      const hi=el.querySelector('[data-qh="'+id+'"]'),ai=el.querySelector('[data-qa="'+id+'"]');
+      const go=()=>quickSaveScore(id,hi.value,ai.value);
+      b.onclick=go;
+      [hi,ai].forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}}));
+    });
+  }
+
+  // Save a typed-in final score with no stat tracking, then refresh
+  // standings/playoffs automatically.
+  function quickSaveScore(gameId,hv,av){
+    const g=L.games.find(x=>x.id===gameId);if(!g)return;
+    if(hv===''||av===''){alert('Enter both scores.');return;}
+    const hs=parseInt(hv,10),as=parseInt(av,10);
+    if(isNaN(hs)||isNaN(as)||hs<0||as<0){alert('Enter valid scores.');return;}
+    if(hs===as){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
+    g.homeScore=hs;g.awayScore=as;g.played=true;
+    save();
+    if(g.phase==='playoff')advancePlayoff(g);
+    render();
   }
 
   // ════════════════ GAME TRACKER ════════════════
@@ -260,37 +291,64 @@
     [h,a].forEach(t=>t.players.forEach((_,pi)=>{const k=sk(t.id,pi);if(!work.stats[k])work.stats[k]={makes:0,attempts:0};}));
 
     const root=document.getElementById('overlay-root');
-    function teamCol(t,scoreKey){
+    function teamCol(t,scoreKey,side){
       let s='<div class="teambox"><h3>'+esc(t.name)+'</h3>'+
-        '<div class="score-stepper"><button data-dec="'+scoreKey+'">&minus;</button><b id="sc-'+scoreKey+'">'+work[scoreKey]+'</b><button data-inc="'+scoreKey+'">+</button></div>'+
+        '<div class="score-stepper"><button data-dec="'+scoreKey+'">&minus;</button>'+
+          '<input class="score-in" type="number" min="0" inputmode="numeric" id="sc-'+scoreKey+'" data-score="'+scoreKey+'" value="'+work[scoreKey]+'">'+
+          '<button data-inc="'+scoreKey+'">+</button></div>'+
         '<div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px">FINAL SCORE</div>';
       t.players.forEach((p,pi)=>{
         const k=sk(t.id,pi),st=work.stats[k];
+        const keys=side==='home'?(pi===0?['Q','A']:['W','S']):(pi===0?['O','K']:['P','L']);
         s+='<div class="player-stat"><div><div class="pn">'+esc(p)+'</div><div class="pct" id="pct-'+k+'">'+pctText(st)+'</div></div>'+
-           '<div class="hm"><button class="hit" data-hit="'+k+'">Hit</button><button class="miss" data-miss="'+k+'">Miss</button><button class="undo" data-undo="'+k+'">Undo</button></div></div>';
+           '<div class="hm"><button class="hit" data-hit="'+k+'">Hit<kbd>'+keys[0]+'</kbd></button><button class="miss" data-miss="'+k+'">Miss<kbd>'+keys[1]+'</kbd></button><button class="undo" data-undo="'+k+'">Undo</button></div></div>';
       });
       return s+'</div>';
     }
     root.innerHTML='<div class="overlay"><div class="tracker">'+
       '<div class="matchup">'+esc(h.name)+'  vs  '+esc(a.name)+'</div>'+
       '<div style="text-align:center;color:var(--muted);font-size:13px">Week '+(g.round||'-')+(g.phase==='playoff'?' &middot; Playoffs':'')+'</div>'+
-      '<div class="teamcols">'+teamCol(h,'homeScore')+teamCol(a,'awayScore')+'</div>'+
+      '<div class="teamcols">'+teamCol(h,'homeScore','home')+teamCol(a,'awayScore','away')+'</div>'+
+      '<div class="kbd-hint">Keyboard: <kbd>Q</kbd>/<kbd>A</kbd> &amp; <kbd>W</kbd>/<kbd>S</kbd> = '+esc(h.name)+' hit/miss · <kbd>O</kbd>/<kbd>K</kbd> &amp; <kbd>P</kbd>/<kbd>L</kbd> = '+esc(a.name)+' hit/miss</div>'+
       '<div class="row spread" style="margin-top:16px">'+
         '<button class="ghost" id="trk-cancel">Cancel</button>'+
         '<button class="green" id="trk-save">Save result</button>'+
       '</div></div></div>';
 
     function refreshPct(k){document.getElementById('pct-'+k).textContent=pctText(work.stats[k]);}
-    root.querySelectorAll('[data-hit]').forEach(b=>b.onclick=()=>{const k=b.dataset.hit;work.stats[k].makes++;work.stats[k].attempts++;refreshPct(k);});
-    root.querySelectorAll('[data-miss]').forEach(b=>b.onclick=()=>{const k=b.dataset.miss;work.stats[k].attempts++;refreshPct(k);});
-    root.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{const k=b.dataset.undo,st=work.stats[k];if(st.attempts>0){if(st.makes===st.attempts&&st.makes>0)st.makes--;st.attempts--;if(st.makes>st.attempts)st.makes=st.attempts;}refreshPct(k);});
-    root.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{work[b.dataset.inc]++;document.getElementById('sc-'+b.dataset.inc).textContent=work[b.dataset.inc];});
-    root.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{const k=b.dataset.dec;if(work[k]>0)work[k]--;document.getElementById('sc-'+k).textContent=work[k];});
-    document.getElementById('trk-cancel').onclick=()=>root.innerHTML='';
+    function setScore(key,v){work[key]=Math.max(0,v);const inp=document.getElementById('sc-'+key);if(inp)inp.value=work[key];}
+    function doHit(k){if(!work.stats[k])return;work.stats[k].makes++;work.stats[k].attempts++;refreshPct(k);}
+    function doMiss(k){if(!work.stats[k])return;work.stats[k].attempts++;refreshPct(k);}
+    function doUndo(k){const st=work.stats[k];if(st&&st.attempts>0){if(st.makes===st.attempts&&st.makes>0)st.makes--;st.attempts--;if(st.makes>st.attempts)st.makes=st.attempts;}refreshPct(k);}
+    root.querySelectorAll('[data-hit]').forEach(b=>b.onclick=()=>doHit(b.dataset.hit));
+    root.querySelectorAll('[data-miss]').forEach(b=>b.onclick=()=>doMiss(b.dataset.miss));
+    root.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>doUndo(b.dataset.undo));
+    root.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>setScore(b.dataset.inc,work[b.dataset.inc]+1));
+    root.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>setScore(b.dataset.dec,work[b.dataset.dec]-1));
+    root.querySelectorAll('[data-score]').forEach(inp=>inp.addEventListener('input',()=>{const v=parseInt(inp.value,10);work[inp.dataset.score]=isNaN(v)||v<0?0:v;}));
+
+    // Keyboard hit/miss: Q/A & W/S = home p0/p1, O/K & P/L = away p0/p1.
+    const keyMap={
+      q:['hit',sk(h.id,0)], a:['miss',sk(h.id,0)],
+      w:['hit',sk(h.id,1)], s:['miss',sk(h.id,1)],
+      o:['hit',sk(a.id,0)], k:['miss',sk(a.id,0)],
+      p:['hit',sk(a.id,1)], l:['miss',sk(a.id,1)],
+    };
+    function onKey(e){
+      if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+      const m=keyMap[e.key.toLowerCase()];if(!m)return;
+      e.preventDefault();
+      if(m[1]&&work.stats[m[1]]===undefined)return;
+      (m[0]==='hit'?doHit:doMiss)(m[1]);
+    }
+    document.addEventListener('keydown',onKey);
+    function closeTracker(){document.removeEventListener('keydown',onKey);root.innerHTML='';}
+
+    document.getElementById('trk-cancel').onclick=closeTracker;
     document.getElementById('trk-save').onclick=()=>{
       if(work.homeScore===work.awayScore){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
       g.homeScore=work.homeScore;g.awayScore=work.awayScore;g.stats=work.stats;g.played=true;
-      save();root.innerHTML='';
+      save();closeTracker();
       if(g.phase==='playoff')advancePlayoff(g);
       render();
     };
@@ -370,7 +428,10 @@
         html+='<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)">'+
           '<div style="flex:1"><span class="'+(aw?'pill win':'')+'">'+esc(a.name)+'</span> vs <span class="'+(bw?'pill win':'')+'">'+esc(b.name)+'</span></div>'+
           (done?'<div class="row" style="gap:10px"><b>'+g.homeScore+'&ndash;'+g.awayScore+'</b><button class="ghost" data-pedit="'+g.id+'">Edit</button></div>'
-               :'<button class="primary" data-pplay="'+m.id+'">Track</button>')+
+               :'<div class="qrow"><input class="qsi" type="number" min="0" inputmode="numeric" data-pqh="'+m.id+'" placeholder="'+esc(a.name).slice(0,3)+'" aria-label="'+esc(a.name)+' score"> &ndash; '+
+                 '<input class="qsi" type="number" min="0" inputmode="numeric" data-pqa="'+m.id+'" placeholder="'+esc(b.name).slice(0,3)+'" aria-label="'+esc(b.name)+' score">'+
+                 '<button class="green" data-pqsave="'+m.id+'">Save</button>'+
+                 '<button class="ghost" data-pplay="'+m.id+'">Track</button></div>')+
           '</div>';
       });
       html+='</div>';
@@ -380,6 +441,13 @@
     el.innerHTML=html;
     el.querySelectorAll('[data-pplay]').forEach(b=>b.onclick=()=>startPlayoffGame(b.dataset.pplay));
     el.querySelectorAll('[data-pedit]').forEach(b=>b.onclick=()=>openTracker(b.dataset.pedit));
+    el.querySelectorAll('[data-pqsave]').forEach(b=>{
+      const mid=b.dataset.pqsave;
+      const hi=el.querySelector('[data-pqh="'+mid+'"]'),ai=el.querySelector('[data-pqa="'+mid+'"]');
+      const go=()=>quickSavePlayoffScore(mid,hi.value,ai.value);
+      b.onclick=go;
+      [hi,ai].forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}}));
+    });
     document.getElementById('reset-playoff').onclick=()=>{if(confirm('Reset the playoff bracket? Season stats are kept.')){
       L.games=L.games.filter(g=>g.phase!=='playoff');L.playoff=null;save();render();}};
   }
@@ -410,6 +478,23 @@
       L.games.push(g);match.gameId=g.id;save();
     }
     openTracker(match.gameId);
+  }
+
+  // Type a playoff final score (no stat tracking): create the game if
+  // needed, record it, and advance the bracket automatically.
+  function quickSavePlayoffScore(matchId,hv,av){
+    if(hv===''||av===''){alert('Enter both scores.');return;}
+    const hs=parseInt(hv,10),as=parseInt(av,10);
+    if(isNaN(hs)||isNaN(as)||hs<0||as<0){alert('Enter valid scores.');return;}
+    if(hs===as){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
+    let match,ri;
+    L.playoff.rounds.forEach((round,i)=>round.forEach(m=>{if(m.id===matchId){match=m;ri=i;}}));
+    if(!match)return;
+    let g;
+    if(match.gameId){g=L.games.find(x=>x.id===match.gameId);}
+    if(!g){g={id:uid(),round:ri+1,homeId:match.a,awayId:match.b,played:false,homeScore:0,awayScore:0,stats:{},phase:'playoff',matchId:match.id};L.games.push(g);match.gameId=g.id;}
+    g.homeScore=hs;g.awayScore=as;g.played=true;
+    save();advancePlayoff(g);render();
   }
 
   function advancePlayoff(g){
