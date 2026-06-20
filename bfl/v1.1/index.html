@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BFL — Beer Football League</title>
+<meta name="description" content="Beer Football League stat sheet: track hits and misses, log scores, run a regular season and playoff bracket." />
+<meta name="google-site-verification" content="RNACaTIJi-mOSihpzI2Iwtfzc6Ushb3ChMxEcWt4HpU" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0d0d12;--soft:#16161f;--soft2:#1f1f2b;--line:rgba(255,255,255,.12);--text:#f3f3f5;--muted:rgba(243,243,245,.6);--accent:#2e6df0;--green:#2ecc71;--red:#e74c3c;--gold:#f1c40f}
+  body{font-family:'Oswald',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  a.back{color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:6px 12px;border-radius:20px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(13,13,18,.92);backdrop-filter:blur(6px);z-index:10}
+  .brand{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--accent)}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:57px;background:rgba(13,13,18,.92);backdrop-filter:blur(6px);z-index:9}
+  .tab{white-space:nowrap;padding:8px 14px;border-radius:20px;border:1px solid var(--line);color:var(--muted);cursor:pointer;font-size:14px;font-weight:600;background:transparent}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  main{max-width:860px;margin:0 auto;padding:18px}
+  h2{font-size:20px;margin-bottom:6px;font-weight:600}
+  .hint{color:var(--muted);font-size:13.5px;margin-bottom:16px}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-size:14px;font-weight:600;padding:10px 14px;color:#fff;background:#2a2a38}
+  button.primary{background:var(--accent)}
+  button.green{background:var(--green);color:#06281a}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  button.danger{background:transparent;border:1px solid rgba(231,76,60,.5);color:#ff8a7a}
+  button:active{transform:scale(.98)}
+  button:disabled{opacity:.4;cursor:default}
+  input{font-family:inherit;font-size:14px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:#0e0e15;color:var(--text)}
+  .card{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  .row{display:flex;gap:8px;align-items:center}
+  .spread{justify-content:space-between}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:9px 8px;text-align:center;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  td.name,th.name{text-align:left}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:12px;background:var(--soft2);color:var(--muted);border:1px solid var(--line)}
+  .pill.win{color:var(--green);border-color:rgba(46,204,113,.4)}
+  .pill.final{color:var(--gold);border-color:rgba(241,196,15,.4)}
+  .hidden{display:none}
+  .empty{color:var(--muted);text-align:center;padding:30px;font-size:15px}
+
+  /* game tracker overlay */
+  .overlay{position:fixed;inset:0;background:rgba(5,5,9,.86);display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;z-index:50}
+  .tracker{background:var(--soft);border:1px solid var(--line);border-radius:16px;max-width:760px;width:100%;padding:18px}
+  .matchup{text-align:center;font-size:18px;font-weight:700;margin-bottom:4px}
+  .teamcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  @media(max-width:560px){.teamcols{grid-template-columns:1fr}}
+  .teambox{background:var(--soft2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .teambox h3{font-size:17px;margin-bottom:10px}
+  .score-stepper{display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0 14px}
+  .score-stepper b{font-size:34px;min-width:54px;text-align:center}
+  .score-stepper button{width:42px;height:42px;font-size:20px;border-radius:10px;background:#33334a}
+  .player-stat{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+  .player-stat .pn{font-weight:600}
+  .player-stat .pct{font-size:12px;color:var(--muted)}
+  .hm{display:flex;gap:6px}
+  .hm button{padding:8px 10px;font-size:13px}
+  .hit{background:var(--green);color:#06281a}
+  .miss{background:#3a2030;color:#ff9a8a;border:1px solid rgba(231,76,60,.4)}
+  .undo{font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--line);padding:6px 8px}
+  .score-in{width:70px;font-size:30px;font-weight:700;text-align:center;background:#0e0e15;border:1px solid var(--line);border-radius:10px;color:var(--text);font-family:inherit;padding:4px 2px}
+  .score-in:focus{outline:none;border-color:var(--accent)}
+  kbd{font-family:inherit;font-size:10px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.28);border-radius:4px;padding:0 4px;margin-left:4px;line-height:1.4}
+  .kbd-hint{text-align:center;color:var(--muted);font-size:11.5px;margin-top:12px}
+  .qrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .qsi{width:46px;text-align:center;padding:7px 4px;font-size:15px}
+  .qsi:focus{outline:none;border-color:var(--accent)}
+  footer{color:var(--muted);font-size:12px;padding:24px;text-align:center}
+  /* shared: rules button, modal, ad slot, legal footer */
+  .rules-btn-h{font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:6px 12px;border-radius:20px}
+  .rules-btn-h:active{transform:scale(.97)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,5,9,.88);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;z-index:100}
+  .modal-overlay.hidden{display:none}
+  .modal{background:var(--soft);border:1px solid var(--line);border-radius:16px;max-width:660px;width:100%;padding:22px 22px 26px;position:relative}
+  .modal h2{font-family:'Press Start 2P',monospace;font-size:15px;color:var(--accent);margin-bottom:14px}
+  .modal h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin:16px 0 4px}
+  .modal p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:8px}
+  .modal .close-x{position:absolute;top:14px;right:16px;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-weight:600}
+  .ad-slot{width:100%;max-width:728px;min-height:90px;margin:20px auto 4px;background:#000;border:1px solid rgba(255,255,255,.05);border-radius:8px}
+  .site-footer{max-width:760px;margin:0 auto;padding:18px 18px 40px;color:var(--muted);font-size:11.5px;line-height:1.6;text-align:center}
+  .site-footer .cprt{color:var(--text);opacity:.85;font-size:12px;margin-bottom:6px;font-weight:600}
+  .gg-home{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;text-decoration:none;font-family:'Press Start 2P',monospace;font-size:12px;letter-spacing:-1px;color:#0b0b10;background:linear-gradient(135deg,#22d3ee,#6366f1 55%,#ec4899);box-shadow:0 4px 14px rgba(99,102,241,.45);border:1.5px solid rgba(255,255,255,.25)}
+  .gg-home:active{transform:scale(.95)}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">BFL</span>
+  <span style="font-size:13px;color:var(--muted)">Beer Football League</span>
+  <div class="row" style="gap:8px">
+    <button class="rules-btn-h" id="rules-open">Rules</button>
+    <a class="back" href="../../v1.1/">All games</a>
+    <a class="gg-home" href="../../v1.1/" title="Guzzling Games — home" aria-label="Guzzling Games home">GG</a>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="teams">Teams</button>
+  <button class="tab" data-tab="schedule">Season</button>
+  <button class="tab" data-tab="standings">Standings</button>
+  <button class="tab" data-tab="stats">Stats</button>
+  <button class="tab" data-tab="playoffs">Playoffs</button>
+</nav>
+
+<main>
+  <section id="tab-teams"></section>
+  <section id="tab-schedule" class="hidden"></section>
+  <section id="tab-standings" class="hidden"></section>
+  <section id="tab-stats" class="hidden"></section>
+  <section id="tab-playoffs" class="hidden"></section>
+</main>
+
+<div id="overlay-root"></div>
+
+<div class="modal-overlay hidden" id="rules-modal">
+  <div class="modal">
+    <button class="close-x" id="rules-close">Close</button>
+    <h2>BEER FOOTBALL — OFFICIAL RULES</h2>
+    <p>This app is the stat sheet and league manager. Here are the official BFL rules the games are played by.</p>
+    <h3>The Setup</h3>
+    <p>Two players per team, six-cup inverted triangles at each end of the table. Two twenty-minute halves; the clock stops after scoring plays, between turnovers, and for field goals. Two balls in play.</p>
+    <h3>Offense</h3>
+    <p>You get four downs (shots) to score a touchdown (clear all six cups). Teammates alternate each shot. Each cup made is a first down — but there are no re-racks. Miss four shots in a row and you turn it over on downs, losing all progress and starting again at six cups. Score a touchdown and you can kick the PAT (full rack, one teammate must make it) or go for two (both teammates make it on the same full rack).</p>
+    <h3>Defense</h3>
+    <p>Switch off with your teammate to drink every made cup — and you must finish your cup before you can play defense. A ball that bounces off a cup and is caught one-handed with no bobble is a sack and a loss of down. An airball shot over the table caught one-handed (no bobble) is an interception and a turnover on downs. Every other miss just moves to the next down. Interceptions can become pick-6s via a one-on-one flip-cup race.</p>
+    <h3>Field Goals (3 pts)</h3>
+    <p>Once you've hit at least three cups you're in scoring range and may kick on any down with three or fewer cups left. Distance matters: 3 cups left → shoot at 1 cup; 2 left → shoot at a 3-cup triangle; 1 left → shoot at a full six-cup triangle. Each teammate gets a shot; only one must make it.</p>
+    <h3>Punting</h3>
+    <p>On any down you can punt — your rack stays as is and the other team takes possession. If they don't score (or you intercept), you resume your drive on the same rack. If they score, you start your drive over.</p>
+    <h3>Kick-offs</h3>
+    <p>Coin/beer-tab flip; the winner receives or defers. No actual kick — the receiving team just starts with the ball. The kicking team may attempt an onside kick: the receiver moves one cup to the corner and both kickers shoot. One make → you keep the ball and they remove a cup. Both miss → their ball and you remove three of your own cups.</p>
+    <h3>Overtime</h3>
+    <p>College rules: teams start in scoring range with three cups. Still tied after the first OT → second OT, both go for two. Third OT → trade two-point conversions until there's a winner.</p>
+  </div>
+</div>
+
+<!-- reserved ad slot (kept blank for future use) -->
+<div class="ad-slot" aria-hidden="true"></div>
+<footer class="site-footer">
+  <div class="cprt">© 2026 Guzzling Games. All rights reserved.</div>
+  <p>Guzzling Games and its game names, rules, designs, and content are protected works. Unauthorized reproduction or distribution is prohibited.</p>
+  <p><strong>Drink responsibly.</strong> For entertainment only. You must be of legal drinking age (21+ in the U.S.) to consume alcohol — and you never have to: every game plays just as well with any non-alcoholic beverage. Never drink and drive. By using this site you agree the creators assume no liability for any injury, loss, or damage arising from its use. Play at your own risk.</p>
+</footer>
+
+<script>
+(function(){
+  const LS_KEY='bflLeagueV1';
+  const blank=()=>({teams:[],games:[],seasonGenerated:false,playoff:null});
+  let L=load();
+
+  function load(){try{const s=localStorage.getItem(LS_KEY);if(s)return JSON.parse(s);}catch(e){}return blank();}
+  function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(L));}catch(e){}}
+  function uid(){return Math.random().toString(36).slice(2,9);}
+  const teamById=id=>L.teams.find(t=>t.id===id);
+
+  // ── tabs ──
+  document.getElementById('tabs').addEventListener('click',e=>{
+    const t=e.target.closest('.tab');if(!t)return;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+    ['teams','schedule','standings','stats','playoffs'].forEach(name=>{
+      document.getElementById('tab-'+name).classList.toggle('hidden',name!==t.dataset.tab);
+    });
+    render();
+  });
+
+  // ════════════════ TEAMS ════════════════
+  function renderTeams(){
+    const el=document.getElementById('tab-teams');
+    let html='<h2>Teams</h2><p class="hint">Each BFL team has two players. Add your teams, then generate the season schedule.</p>';
+    html+='<div class="card"><div class="row" style="flex-wrap:wrap;gap:8px">'+
+      '<input id="t-name" placeholder="Team name" style="flex:1;min-width:140px">'+
+      '<input id="p1" placeholder="Player 1" style="flex:1;min-width:120px">'+
+      '<input id="p2" placeholder="Player 2" style="flex:1;min-width:120px">'+
+      '<button class="primary" id="add-team">Add team</button></div></div>';
+
+    if(!L.teams.length){html+='<div class="empty">No teams yet. Add at least two to start a season.</div>';}
+    else{
+      html+='<div class="card"><table><thead><tr><th class="name">Team</th><th class="name">Players</th><th></th></tr></thead><tbody>';
+      L.teams.forEach(t=>{
+        html+='<tr><td class="name"><b>'+esc(t.name)+'</b></td><td class="name">'+esc(t.players[0])+' &amp; '+esc(t.players[1])+'</td>'+
+          '<td>'+(L.seasonGenerated?'<span class="pill">locked</span>':'<button class="danger" data-del="'+t.id+'">Remove</button>')+'</td></tr>';
+      });
+      html+='</tbody></table></div>';
+      if(L.teams.length>=2 && !L.seasonGenerated){
+        html+='<button class="green" id="gen-season">Generate Season Schedule ('+L.teams.length+' teams)</button> ';
+      }
+    }
+    html+='<div style="height:18px"></div>';
+    html+='<div class="card"><h2 style="font-size:16px;margin-bottom:4px">Share / back up this season</h2>'+
+      '<p class="hint" style="margin-bottom:10px">Copy this season code and send it to anyone (text, group chat, etc.). They paste it below to load the exact same league \u2014 teams, scores, standings and bracket \u2014 on their own device. Re-paste an updated code anytime to sync.</p>'+
+      '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="primary" id="export-season">Copy season code</button>'+
+        '<button class="ghost" id="show-code">Show code</button></div>'+
+      '<textarea id="season-code" placeholder="Paste a season code here to load it\u2026" style="display:none;width:100%;min-height:90px;font-family:inherit;font-size:12px;padding:10px;border-radius:8px;border:1px solid var(--line);background:#0e0e15;color:var(--text);margin-bottom:10px"></textarea>'+
+      '<div class="row" style="gap:8px"><button class="green" id="import-season">Load pasted code</button></div></div>';
+    html+='<button class="danger" id="reset-league">Reset entire league</button>';
+    el.innerHTML=html;
+
+    const add=document.getElementById('add-team');
+    if(add)add.onclick=()=>{
+      const n=val('t-name'),p1=val('p1'),p2=val('p2');
+      if(!n){alert('Enter a team name');return;}
+      L.teams.push({id:uid(),name:n,players:[p1||'Player 1',p2||'Player 2']});
+      save();renderTeams();
+    };
+    el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+      L.teams=L.teams.filter(t=>t.id!==b.dataset.del);save();renderTeams();
+    });
+    const gs=document.getElementById('gen-season');
+    if(gs)gs.onclick=generateSeason;
+    document.getElementById('reset-league').onclick=()=>{
+      if(confirm('Reset the entire league? This erases all teams, games, and stats.')){L=blank();save();render();}
+    };
+    // ── Share / back up season (export + import code, no server) ──
+    const ta=document.getElementById('season-code');
+    const expBtn=document.getElementById('export-season');
+    if(expBtn)expBtn.onclick=()=>{
+      if(!L.teams.length){alert('Add some teams first \u2014 nothing to share yet.');return;}
+      const code=encodeSeason();
+      navigator.clipboard&&navigator.clipboard.writeText(code).then(
+        ()=>{expBtn.textContent='Copied!';setTimeout(()=>expBtn.textContent='Copy season code',1500);},
+        ()=>{ta.style.display='block';ta.value=code;ta.select();alert('Copy the code shown below.');}
+      );
+      if(!navigator.clipboard){ta.style.display='block';ta.value=code;ta.select();}
+    };
+    const showBtn=document.getElementById('show-code');
+    if(showBtn)showBtn.onclick=()=>{ta.style.display='block';ta.value=encodeSeason();ta.focus();};
+    const impBtn=document.getElementById('import-season');
+    if(impBtn)impBtn.onclick=()=>{
+      ta.style.display='block';
+      const raw=(ta.value||'').trim();
+      if(!raw){alert('Paste a season code into the box first.');ta.focus();return;}
+      const data=decodeSeason(raw);
+      if(!data){alert('That code isn\u2019t valid. Make sure you copied the whole thing.');return;}
+      if(!confirm('Load this season? It replaces the league currently on this device.'))return;
+      L=data;save();render();
+    };
+  }
+
+  // ── season code helpers (base64 of the league JSON) ──
+  function encodeSeason(){
+    try{
+      const json=JSON.stringify({v:1,L});
+      return 'BFL1.'+btoa(unescape(encodeURIComponent(json)));
+    }catch(e){return '';}
+  }
+  function decodeSeason(code){
+    try{
+      let s=String(code).trim();
+      if(s.indexOf('BFL1.')===0)s=s.slice(5);
+      const json=decodeURIComponent(escape(atob(s)));
+      const obj=JSON.parse(json);
+      const data=obj&&obj.L?obj.L:obj;
+      if(!data||!Array.isArray(data.teams)||!Array.isArray(data.games))return null;
+      // normalize shape so older/newer codes load cleanly
+      return {teams:data.teams,games:data.games,seasonGenerated:!!data.seasonGenerated,playoff:data.playoff||null};
+    }catch(e){return null;}
+  }
+
+  // ════════════════ SCHEDULE GEN (round robin) ════════════════
+  function generateSeason(){
+    const ids=L.teams.map(t=>t.id);
+    if(ids.length%2)ids.push(null); // bye
+    const n=ids.length, rounds=n-1, half=n/2;
+    const arr=ids.slice();
+    L.games=[];
+    for(let r=0;r<rounds;r++){
+      for(let i=0;i<half;i++){
+        const a=arr[i],b=arr[n-1-i];
+        if(a!==null&&b!==null){
+          L.games.push({id:uid(),round:r+1,homeId:(r%2?b:a),awayId:(r%2?a:b),played:false,homeScore:0,awayScore:0,stats:{},phase:'season'});
+        }
+      }
+      arr.splice(1,0,arr.pop()); // rotate
+    }
+    L.seasonGenerated=true;save();
+    selectTab('schedule');
+  }
+
+  // ════════════════ SCHEDULE ════════════════
+  function renderSchedule(){
+    const el=document.getElementById('tab-schedule');
+    if(!L.seasonGenerated){el.innerHTML='<h2>Season</h2><div class="empty">Add teams and generate a schedule from the Teams tab.</div>';return;}
+    let html='<h2>Regular Season</h2><p class="hint">Just type the final score and hit Save \u2014 standings update automatically. Or tap <b>Track</b> to log hit/miss shooting too.</p>';
+    const byRound={};
+    L.games.filter(g=>g.phase==='season').forEach(g=>{(byRound[g.round]=byRound[g.round]||[]).push(g);});
+    Object.keys(byRound).sort((a,b)=>a-b).forEach(r=>{
+      html+='<div class="card"><div style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Week '+r+'</div>';
+      byRound[r].forEach(g=>{html+=gameRow(g);});
+      html+='</div>';
+    });
+    el.innerHTML=html;
+    bindGameRows(el);
+  }
+
+  function gameRow(g){
+    const h=teamById(g.homeId),a=teamById(g.awayId);
+    const done=g.played;
+    const hw=done&&g.homeScore>g.awayScore, aw=done&&g.awayScore>g.homeScore;
+    return '<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)">'+
+      '<div style="flex:1"><span class="'+(hw?'pill win':'')+'">'+esc(h.name)+'</span> vs <span class="'+(aw?'pill win':'')+'">'+esc(a.name)+'</span></div>'+
+      (done?'<div class="row" style="gap:10px"><b>'+g.homeScore+' &ndash; '+g.awayScore+'</b><button class="ghost" data-edit="'+g.id+'">Edit</button></div>'
+           :'<div class="qrow"><input class="qsi" type="number" min="0" inputmode="numeric" data-qh="'+g.id+'" placeholder="'+esc(h.name).slice(0,3)+'" aria-label="'+esc(h.name)+' score"> &ndash; '+
+             '<input class="qsi" type="number" min="0" inputmode="numeric" data-qa="'+g.id+'" placeholder="'+esc(a.name).slice(0,3)+'" aria-label="'+esc(a.name)+' score">'+
+             '<button class="green" data-qsave="'+g.id+'">Save</button>'+
+             '<button class="ghost" data-play="'+g.id+'">Track</button></div>')+
+      '</div>';
+  }
+  function bindGameRows(el){
+    el.querySelectorAll('[data-play],[data-edit]').forEach(b=>{
+      const id=b.dataset.play||b.dataset.edit;
+      b.onclick=()=>openTracker(id);
+    });
+    el.querySelectorAll('[data-qsave]').forEach(b=>{
+      const id=b.dataset.qsave;
+      const hi=el.querySelector('[data-qh="'+id+'"]'),ai=el.querySelector('[data-qa="'+id+'"]');
+      const go=()=>quickSaveScore(id,hi.value,ai.value);
+      b.onclick=go;
+      [hi,ai].forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}}));
+    });
+  }
+
+  // Save a typed-in final score with no stat tracking, then refresh
+  // standings/playoffs automatically.
+  function quickSaveScore(gameId,hv,av){
+    const g=L.games.find(x=>x.id===gameId);if(!g)return;
+    if(hv===''||av===''){alert('Enter both scores.');return;}
+    const hs=parseInt(hv,10),as=parseInt(av,10);
+    if(isNaN(hs)||isNaN(as)||hs<0||as<0){alert('Enter valid scores.');return;}
+    if(hs===as){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
+    g.homeScore=hs;g.awayScore=as;g.played=true;
+    save();
+    if(g.phase==='playoff')advancePlayoff(g);
+    render();
+  }
+
+  // ════════════════ GAME TRACKER ════════════════
+  function openTracker(gameId){
+    const g=L.games.find(x=>x.id===gameId);
+    const h=teamById(g.homeId),a=teamById(g.awayId);
+    // working copy
+    const work={homeScore:g.homeScore||0,awayScore:g.awayScore||0,stats:JSON.parse(JSON.stringify(g.stats||{}))};
+    const sk=(tid,pi)=>tid+'_'+pi;
+    [h,a].forEach(t=>t.players.forEach((_,pi)=>{const k=sk(t.id,pi);if(!work.stats[k])work.stats[k]={makes:0,attempts:0};}));
+
+    const root=document.getElementById('overlay-root');
+    function teamCol(t,scoreKey,side){
+      let s='<div class="teambox"><h3>'+esc(t.name)+'</h3>'+
+        '<div class="score-stepper"><button data-dec="'+scoreKey+'">&minus;</button>'+
+          '<input class="score-in" type="number" min="0" inputmode="numeric" id="sc-'+scoreKey+'" data-score="'+scoreKey+'" value="'+work[scoreKey]+'">'+
+          '<button data-inc="'+scoreKey+'">+</button></div>'+
+        '<div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:6px">FINAL SCORE</div>';
+      t.players.forEach((p,pi)=>{
+        const k=sk(t.id,pi),st=work.stats[k];
+        const keys=side==='home'?(pi===0?['Q','A']:['W','S']):(pi===0?['O','K']:['P','L']);
+        s+='<div class="player-stat"><div><div class="pn">'+esc(p)+'</div><div class="pct" id="pct-'+k+'">'+pctText(st)+'</div></div>'+
+           '<div class="hm"><button class="hit" data-hit="'+k+'">Hit<kbd>'+keys[0]+'</kbd></button><button class="miss" data-miss="'+k+'">Miss<kbd>'+keys[1]+'</kbd></button><button class="undo" data-undo="'+k+'">Undo</button></div></div>';
+      });
+      return s+'</div>';
+    }
+    root.innerHTML='<div class="overlay"><div class="tracker">'+
+      '<div class="matchup">'+esc(h.name)+'  vs  '+esc(a.name)+'</div>'+
+      '<div style="text-align:center;color:var(--muted);font-size:13px">Week '+(g.round||'-')+(g.phase==='playoff'?' &middot; Playoffs':'')+'</div>'+
+      '<div class="teamcols">'+teamCol(h,'homeScore','home')+teamCol(a,'awayScore','away')+'</div>'+
+      '<div class="kbd-hint">Keyboard: <kbd>Q</kbd>/<kbd>A</kbd> &amp; <kbd>W</kbd>/<kbd>S</kbd> = '+esc(h.name)+' hit/miss · <kbd>O</kbd>/<kbd>K</kbd> &amp; <kbd>P</kbd>/<kbd>L</kbd> = '+esc(a.name)+' hit/miss</div>'+
+      '<div class="row spread" style="margin-top:16px">'+
+        '<button class="ghost" id="trk-cancel">Cancel</button>'+
+        '<button class="green" id="trk-save">Save result</button>'+
+      '</div></div></div>';
+
+    function refreshPct(k){document.getElementById('pct-'+k).textContent=pctText(work.stats[k]);}
+    function setScore(key,v){work[key]=Math.max(0,v);const inp=document.getElementById('sc-'+key);if(inp)inp.value=work[key];}
+    function doHit(k){if(!work.stats[k])return;work.stats[k].makes++;work.stats[k].attempts++;refreshPct(k);}
+    function doMiss(k){if(!work.stats[k])return;work.stats[k].attempts++;refreshPct(k);}
+    function doUndo(k){const st=work.stats[k];if(st&&st.attempts>0){if(st.makes===st.attempts&&st.makes>0)st.makes--;st.attempts--;if(st.makes>st.attempts)st.makes=st.attempts;}refreshPct(k);}
+    root.querySelectorAll('[data-hit]').forEach(b=>b.onclick=()=>doHit(b.dataset.hit));
+    root.querySelectorAll('[data-miss]').forEach(b=>b.onclick=()=>doMiss(b.dataset.miss));
+    root.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>doUndo(b.dataset.undo));
+    root.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>setScore(b.dataset.inc,work[b.dataset.inc]+1));
+    root.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>setScore(b.dataset.dec,work[b.dataset.dec]-1));
+    root.querySelectorAll('[data-score]').forEach(inp=>inp.addEventListener('input',()=>{const v=parseInt(inp.value,10);work[inp.dataset.score]=isNaN(v)||v<0?0:v;}));
+
+    // Keyboard hit/miss: Q/A & W/S = home p0/p1, O/K & P/L = away p0/p1.
+    const keyMap={
+      q:['hit',sk(h.id,0)], a:['miss',sk(h.id,0)],
+      w:['hit',sk(h.id,1)], s:['miss',sk(h.id,1)],
+      o:['hit',sk(a.id,0)], k:['miss',sk(a.id,0)],
+      p:['hit',sk(a.id,1)], l:['miss',sk(a.id,1)],
+    };
+    function onKey(e){
+      if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+      const m=keyMap[e.key.toLowerCase()];if(!m)return;
+      e.preventDefault();
+      if(m[1]&&work.stats[m[1]]===undefined)return;
+      (m[0]==='hit'?doHit:doMiss)(m[1]);
+    }
+    document.addEventListener('keydown',onKey);
+    function closeTracker(){document.removeEventListener('keydown',onKey);root.innerHTML='';}
+
+    document.getElementById('trk-cancel').onclick=closeTracker;
+    document.getElementById('trk-save').onclick=()=>{
+      if(work.homeScore===work.awayScore){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
+      g.homeScore=work.homeScore;g.awayScore=work.awayScore;g.stats=work.stats;g.played=true;
+      save();closeTracker();
+      if(g.phase==='playoff')advancePlayoff(g);
+      render();
+    };
+  }
+
+  // ════════════════ STANDINGS ════════════════
+  function computeStandings(){
+    const rec={};
+    L.teams.forEach(t=>rec[t.id]={id:t.id,name:t.name,w:0,l:0,pf:0,pa:0,gp:0});
+    L.games.filter(g=>g.phase==='season'&&g.played).forEach(g=>{
+      const H=rec[g.homeId],A=rec[g.awayId];if(!H||!A)return;
+      H.gp++;A.gp++;H.pf+=g.homeScore;H.pa+=g.awayScore;A.pf+=g.awayScore;A.pa+=g.homeScore;
+      if(g.homeScore>g.awayScore){H.w++;A.l++;}else{A.w++;H.l++;}
+    });
+    return Object.values(rec).sort((a,b)=>(b.w-b.l)-(a.w-a.l)||(b.pf-b.pa)-(a.pf-a.pa)||b.pf-a.pf);
+  }
+  function renderStandings(){
+    const el=document.getElementById('tab-standings');
+    if(!L.seasonGenerated){el.innerHTML='<h2>Standings</h2><div class="empty">Generate a season first.</div>';return;}
+    const s=computeStandings();
+    let html='<h2>Standings</h2><p class="hint">Sorted by win differential, then point differential.</p><div class="card"><table>'+
+      '<thead><tr><th class="name">#</th><th class="name">Team</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>DIFF</th></tr></thead><tbody>';
+    s.forEach((r,i)=>{const d=r.pf-r.pa;html+='<tr><td>'+(i+1)+'</td><td class="name"><b>'+esc(r.name)+'</b></td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.pf+'</td><td>'+r.pa+'</td><td style="color:'+(d>0?'var(--green)':d<0?'var(--red)':'var(--muted)')+'">'+(d>0?'+':'')+d+'</td></tr>';});
+    html+='</tbody></table></div>';
+    el.innerHTML=html;
+  }
+
+  // ════════════════ STATS ════════════════
+  function renderStats(){
+    const el=document.getElementById('tab-stats');
+    if(!L.teams.length){el.innerHTML='<h2>Stats</h2><div class="empty">No teams yet.</div>';return;}
+    const agg={}; // key teamId_pi -> {name,team,makes,attempts}
+    L.teams.forEach(t=>t.players.forEach((p,pi)=>{agg[t.id+'_'+pi]={name:p,team:t.name,makes:0,attempts:0};}));
+    L.games.filter(g=>g.played).forEach(g=>{
+      Object.keys(g.stats||{}).forEach(k=>{if(agg[k]){agg[k].makes+=g.stats[k].makes;agg[k].attempts+=g.stats[k].attempts;}});
+    });
+    const rows=Object.values(agg).sort((a,b)=>pct(b)-pct(a)||b.makes-a.makes);
+    let html='<h2>Player Shooting Stats</h2><p class="hint">Aggregated across every recorded game (season + playoffs).</p><div class="card"><table>'+
+      '<thead><tr><th class="name">Player</th><th class="name">Team</th><th>Made</th><th>Att</th><th>%</th></tr></thead><tbody>';
+    rows.forEach(r=>{html+='<tr><td class="name"><b>'+esc(r.name)+'</b></td><td class="name">'+esc(r.team)+'</td><td>'+r.makes+'</td><td>'+r.attempts+'</td><td>'+(r.attempts?Math.round(pct(r)*100)+'%':'\u2014')+'</td></tr>';});
+    html+='</tbody></table></div>';
+    el.innerHTML=html;
+  }
+  const pct=r=>r.attempts?r.makes/r.attempts:0;
+  const pctText=st=>st.makes+'/'+st.attempts+(st.attempts?'  ('+Math.round(st.makes/st.attempts*100)+'%)':'');
+
+  // ════════════════ PLAYOFFS ════════════════
+  function renderPlayoffs(){
+    const el=document.getElementById('tab-playoffs');
+    if(!L.seasonGenerated){el.innerHTML='<h2>Playoffs</h2><div class="empty">Generate a season first.</div>';return;}
+    const seasonGames=L.games.filter(g=>g.phase==='season');
+    const allPlayed=seasonGames.length>0&&seasonGames.every(g=>g.played);
+
+    let html='<h2>Playoffs</h2>';
+    if(!L.playoff){
+      html+='<p class="hint">Seed a single-elimination bracket from the current standings.'+(allPlayed?'':' (You can seed now, but the regular season isn\u2019t finished yet.)')+'</p>';
+      const maxSize=Math.min(8,L.teams.length);
+      html+='<div class="card"><div class="row" style="gap:10px;flex-wrap:wrap">Bracket size: ';
+      [2,4,8].filter(n=>n<=maxSize).forEach(n=>{html+='<button class="primary" data-seed="'+n+'">Top '+n+'</button>';});
+      html+='</div></div>';
+      el.innerHTML=html;
+      el.querySelectorAll('[data-seed]').forEach(b=>b.onclick=()=>seedPlayoff(parseInt(b.dataset.seed)));
+      return;
+    }
+    // render bracket
+    html+='<p class="hint">Single elimination. Track each game to advance the winner.</p>';
+    L.playoff.rounds.forEach((round,ri)=>{
+      const label=roundLabel(L.playoff.rounds.length,ri);
+      html+='<div class="card"><div style="color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">'+label+'</div>';
+      round.forEach(m=>{
+        if(m.byeWinner){const t=teamById(m.byeWinner);html+='<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)"><div>'+esc(t.name)+' <span class="pill">bye</span></div></div>';return;}
+        const a=m.a?teamById(m.a):null,b=m.b?teamById(m.b):null;
+        if(!a||!b){html+='<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)"><div style="color:var(--muted)">'+(a?esc(a.name):'TBD')+' vs '+(b?esc(b.name):'TBD')+'</div><span class="pill">waiting</span></div>';return;}
+        const g=m.gameId?L.games.find(x=>x.id===m.gameId):null;
+        const done=g&&g.played;
+        const aw=done&&g.homeScore>g.awayScore, bw=done&&g.awayScore>g.homeScore;
+        html+='<div class="row spread" style="padding:8px 0;border-top:1px solid var(--line)">'+
+          '<div style="flex:1"><span class="'+(aw?'pill win':'')+'">'+esc(a.name)+'</span> vs <span class="'+(bw?'pill win':'')+'">'+esc(b.name)+'</span></div>'+
+          (done?'<div class="row" style="gap:10px"><b>'+g.homeScore+'&ndash;'+g.awayScore+'</b><button class="ghost" data-pedit="'+g.id+'">Edit</button></div>'
+               :'<div class="qrow"><input class="qsi" type="number" min="0" inputmode="numeric" data-pqh="'+m.id+'" placeholder="'+esc(a.name).slice(0,3)+'" aria-label="'+esc(a.name)+' score"> &ndash; '+
+                 '<input class="qsi" type="number" min="0" inputmode="numeric" data-pqa="'+m.id+'" placeholder="'+esc(b.name).slice(0,3)+'" aria-label="'+esc(b.name)+' score">'+
+                 '<button class="green" data-pqsave="'+m.id+'">Save</button>'+
+                 '<button class="ghost" data-pplay="'+m.id+'">Track</button></div>')+
+          '</div>';
+      });
+      html+='</div>';
+    });
+    if(L.playoff.champion){const c=teamById(L.playoff.champion);html+='<div class="card" style="text-align:center;border-color:var(--gold)"><div style="color:var(--gold);font-size:13px;letter-spacing:1px">BFL CHAMPION</div><div style="font-size:26px;font-weight:700;margin-top:6px">'+esc(c.name)+'</div></div>';}
+    html+='<div style="height:14px"></div><button class="danger" id="reset-playoff">Reset playoffs</button>';
+    el.innerHTML=html;
+    el.querySelectorAll('[data-pplay]').forEach(b=>b.onclick=()=>startPlayoffGame(b.dataset.pplay));
+    el.querySelectorAll('[data-pedit]').forEach(b=>b.onclick=()=>openTracker(b.dataset.pedit));
+    el.querySelectorAll('[data-pqsave]').forEach(b=>{
+      const mid=b.dataset.pqsave;
+      const hi=el.querySelector('[data-pqh="'+mid+'"]'),ai=el.querySelector('[data-pqa="'+mid+'"]');
+      const go=()=>quickSavePlayoffScore(mid,hi.value,ai.value);
+      b.onclick=go;
+      [hi,ai].forEach(inp=>inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}}));
+    });
+    document.getElementById('reset-playoff').onclick=()=>{if(confirm('Reset the playoff bracket? Season stats are kept.')){
+      L.games=L.games.filter(g=>g.phase!=='playoff');L.playoff=null;save();render();}};
+  }
+
+  function seedPlayoff(size){
+    const standings=computeStandings().slice(0,size);
+    const seeds=standings.map(s=>s.id);
+    // pad to power of two with byes (null)
+    const bracketSize=size;
+    // standard seeding pairs: 1vN, 2v(N-1)...
+    const first=[];
+    for(let i=0;i<bracketSize/2;i++){
+      first.push({id:uid(),a:seeds[i],b:seeds[bracketSize-1-i],gameId:null});
+    }
+    const rounds=[first];
+    let cnt=first.length;
+    while(cnt>1){const r=[];for(let i=0;i<cnt/2;i++)r.push({id:uid(),a:null,b:null,gameId:null});rounds.push(r);cnt=cnt/2;}
+    L.playoff={size:bracketSize,rounds,champion:null};
+    save();render();
+  }
+
+  function startPlayoffGame(matchId){
+    let match,ri;
+    L.playoff.rounds.forEach((round,i)=>round.forEach(m=>{if(m.id===matchId){match=m;ri=i;}}));
+    if(!match)return;
+    if(!match.gameId){
+      const g={id:uid(),round:ri+1,homeId:match.a,awayId:match.b,played:false,homeScore:0,awayScore:0,stats:{},phase:'playoff',matchId:match.id};
+      L.games.push(g);match.gameId=g.id;save();
+    }
+    openTracker(match.gameId);
+  }
+
+  // Type a playoff final score (no stat tracking): create the game if
+  // needed, record it, and advance the bracket automatically.
+  function quickSavePlayoffScore(matchId,hv,av){
+    if(hv===''||av===''){alert('Enter both scores.');return;}
+    const hs=parseInt(hv,10),as=parseInt(av,10);
+    if(isNaN(hs)||isNaN(as)||hs<0||as<0){alert('Enter valid scores.');return;}
+    if(hs===as){alert('BFL games can\u2019t end in a tie \u2014 settle it in overtime and enter the final score.');return;}
+    let match,ri;
+    L.playoff.rounds.forEach((round,i)=>round.forEach(m=>{if(m.id===matchId){match=m;ri=i;}}));
+    if(!match)return;
+    let g;
+    if(match.gameId){g=L.games.find(x=>x.id===match.gameId);}
+    if(!g){g={id:uid(),round:ri+1,homeId:match.a,awayId:match.b,played:false,homeScore:0,awayScore:0,stats:{},phase:'playoff',matchId:match.id};L.games.push(g);match.gameId=g.id;}
+    g.homeScore=hs;g.awayScore=as;g.played=true;
+    save();advancePlayoff(g);render();
+  }
+
+  function advancePlayoff(g){
+    // find match, set winner, push into next round
+    let ri=-1,mi=-1;
+    L.playoff.rounds.forEach((round,i)=>round.forEach((m,j)=>{if(m.gameId===g.id){ri=i;mi=j;}}));
+    if(ri<0)return;
+    const winnerId=g.homeScore>g.awayScore?g.homeId:g.awayId;
+    if(ri+1<L.playoff.rounds.length){
+      const next=L.playoff.rounds[ri+1][Math.floor(mi/2)];
+      if(mi%2===0)next.a=winnerId;else next.b=winnerId;
+    }else{
+      L.playoff.champion=winnerId;
+    }
+    save();
+  }
+
+  function roundLabel(total,ri){
+    const fromEnd=total-1-ri;
+    if(fromEnd===0)return 'Championship';
+    if(fromEnd===1)return 'Semifinals';
+    if(fromEnd===2)return 'Quarterfinals';
+    return 'Round '+(ri+1);
+  }
+
+  // ── helpers/render ──
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  function val(id){return document.getElementById(id).value.trim();}
+  function selectTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
+    ['teams','schedule','standings','stats','playoffs'].forEach(n=>document.getElementById('tab-'+n).classList.toggle('hidden',n!==name));render();}
+
+  function render(){
+    renderTeams();renderSchedule();renderStandings();renderStats();renderPlayoffs();
+  }
+
+  // Resume where the league left off: if a season exists, open the
+  // most relevant tab (Playoffs if started, else Season) instead of
+  // always landing on Teams. Data itself persists in localStorage.
+  function initialTab(){
+    if(L.playoff) return 'playoffs';
+    if(L.seasonGenerated) return 'schedule';
+    return 'teams';
+  }
+  selectTab(initialTab());
+})();
+</script>
+<script>
+(function(){var o=document.getElementById('rules-open'),m=document.getElementById('rules-modal'),c=document.getElementById('rules-close');
+o.onclick=function(){m.classList.remove('hidden');};c.onclick=function(){m.classList.add('hidden');};
+m.onclick=function(e){if(e.target===m)m.classList.add('hidden');};})();
+</script>
+</body>
+</html>

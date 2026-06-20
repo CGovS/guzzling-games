@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kings Cup</title>
+<meta name="description" content="Kings Cup — the digital card-circle drinking game. Draw a card, follow the rule, don't pour the fourth king." />
+<meta name="google-site-verification" content="RNACaTIJi-mOSihpzI2Iwtfzc6Ushb3ChMxEcWt4HpU" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0d0d12;--soft:#16161f;--line:rgba(255,255,255,.12);--text:#f3f3f5;--muted:rgba(243,243,245,.6);--accent:#e74c3c;--gold:#f1c40f}
+  body{font-family:'Oswald',system-ui,sans-serif;background:radial-gradient(1000px 520px at 50% -10%,#2a1622 0,transparent 60%),var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  a.back{position:fixed;top:14px;left:16px;color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:6px 12px;border-radius:20px;z-index:5}
+  header{text-align:center;padding:32px 16px 6px}
+  .brand{font-family:'Press Start 2P',monospace;font-size:clamp(15px,4vw,26px);color:var(--accent)}
+  .sub{color:var(--muted);margin-top:10px;font-size:14px;max-width:520px}
+  main{width:100%;max-width:560px;padding:18px;flex:1;display:flex;flex-direction:column;align-items:center;gap:16px}
+  .panel{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:20px;width:100%}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:15px;font-weight:600;padding:12px 16px;color:#fff;background:#2a2a38}
+  button.primary{background:var(--accent)}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  button:active{transform:scale(.97)}
+
+  .counts{display:flex;justify-content:space-between;width:100%;gap:10px}
+  .stat{flex:1;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+  .stat b{display:block;font-size:22px}
+  .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  .kings-row{display:flex;gap:8px;justify-content:center}
+  .king-pip{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted)}
+  .king-pip.lit{background:var(--gold);border-color:var(--gold);color:#3a2c00;font-weight:700}
+
+  .card-stage{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+  .card{width:150px;height:212px;border-radius:14px;background:#fff;color:#111;display:flex;flex-direction:column;justify-content:space-between;padding:12px;box-shadow:0 14px 34px rgba(0,0,0,.55);cursor:pointer;transition:transform .15s}
+  .card.red{color:#d11}
+  .card:active{transform:scale(.98)}
+  .card.facedown{background:linear-gradient(135deg,#7a1f2c,#3a0f17);color:#e0a0aa;align-items:center;justify-content:center;font-size:34px;font-family:'Press Start 2P',monospace}
+  .card .c-top{font-size:30px;font-weight:700;line-height:1}
+  .card .c-mid{font-size:64px;text-align:center}
+  .card .c-bot{font-size:30px;font-weight:700;text-align:right;transform:rotate(180deg)}
+
+  .rule-box{width:100%;background:var(--soft);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px;min-height:90px}
+  .rule-title{font-size:20px;font-weight:700}
+  .rule-card{font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+  .rule-text{color:var(--muted);margin-top:6px;line-height:1.5;font-size:15px}
+  .turn{font-size:14px;color:var(--muted);text-align:center}
+  .turn b{color:var(--text)}
+  .hidden{display:none}
+  .gameover{text-align:center}
+  .gameover .big{font-size:24px;color:var(--gold);font-weight:700;margin-bottom:8px}
+  footer{color:var(--muted);font-size:12px;padding:22px;text-align:center}
+  /* shared: rules button, modal, ad slot, legal footer */
+  .gg-top{position:fixed;top:12px;right:14px;z-index:20;display:flex;gap:8px;align-items:center}
+  .rules-btn{font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:7px 14px;border-radius:20px}
+  .rules-btn:active{transform:scale(.97)}
+  .gg-home{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:11px;text-decoration:none;font-family:'Press Start 2P',monospace;font-size:13px;letter-spacing:-1px;color:#0b0b10;background:linear-gradient(135deg,#22d3ee,#6366f1 55%,#ec4899);box-shadow:0 4px 14px rgba(99,102,241,.45);border:1.5px solid rgba(255,255,255,.25)}
+  .gg-home:active{transform:scale(.95)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,5,9,.88);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;z-index:100}
+  .modal-overlay.hidden{display:none}
+  .modal{background:var(--soft);border:1px solid var(--line);border-radius:16px;max-width:640px;width:100%;padding:22px 22px 26px;position:relative}
+  .modal h2{font-family:'Press Start 2P',monospace;font-size:15px;color:var(--accent);margin-bottom:14px}
+  .modal h3{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--text);margin:14px 0 2px}
+  .modal p{color:var(--muted);font-size:14px;line-height:1.55;margin-bottom:6px}
+  .modal .rule-line{margin-bottom:5px;font-size:14px;color:var(--muted)}
+  .modal .rule-line b{color:var(--gold)}
+  .modal .close-x{position:absolute;top:14px;right:16px;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-weight:600}
+  .ad-slot{width:100%;max-width:728px;min-height:90px;margin:20px auto 4px;background:#000;border:1px solid rgba(255,255,255,.05);border-radius:8px}
+  .site-footer{max-width:760px;margin:0 auto;padding:18px 18px 40px;color:var(--muted);font-size:11.5px;line-height:1.6;text-align:center}
+  .site-footer .cprt{color:var(--text);opacity:.85;font-size:12px;margin-bottom:6px;font-weight:600}
+</style>
+</head>
+<body>
+<a class="back" href="../../v1.1/">All games</a>
+<div class="gg-top">
+  <button class="rules-btn" id="rules-open">Rules</button>
+  <a class="gg-home" href="../../v1.1/" title="Guzzling Games — home" aria-label="Guzzling Games home">GG</a>
+</div>
+<header>
+  <div class="brand">KINGS CUP</div>
+  <div class="sub">Draw a card, do what it says. The first three kings pour into the cup — whoever draws the fourth king drinks it.</div>
+</header>
+
+<main>
+  <!-- SETUP -->
+  <section class="panel" id="setup">
+    <h2 style="font-weight:500;margin-bottom:12px">Players</h2>
+    <div id="players-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px">
+      <button class="ghost" id="add-player">+ Add player</button>
+      <button class="ghost" id="remove-player">− Remove</button>
+    </div>
+    <div style="height:14px"></div>
+    <button class="primary" id="start" style="width:100%">Start game</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div class="counts">
+      <div class="stat"><b id="cards-left">52</b><span>Cards left</span></div>
+      <div class="stat"><b id="kings-left">4</b><span>Kings left</span></div>
+    </div>
+    <div class="kings-row" id="kings-row"></div>
+
+    <div class="turn" id="turn">Up next: <b>—</b></div>
+
+    <div class="card-stage">
+      <div class="card facedown" id="card">DRAW</div>
+    </div>
+
+    <div class="rule-box" id="rule-box">
+      <div class="rule-card" id="rule-card">Tap the deck to draw</div>
+      <div class="rule-title" id="rule-title">—</div>
+      <div class="rule-text" id="rule-text"></div>
+    </div>
+
+    <button class="primary hidden" id="next" style="width:100%">Next player</button>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="over" class="panel gameover hidden">
+    <div class="big" id="over-text">The cup has been drunk!</div>
+    <p style="color:var(--muted);margin-bottom:14px" id="over-sub"></p>
+    <button class="primary" id="play-again" style="width:100%">Play again</button>
+  </section>
+</main>
+
+<!-- reserved ad slot (kept blank for future use) -->
+<div class="ad-slot" aria-hidden="true"></div>
+<footer class="site-footer">
+  <div class="cprt">© 2026 Guzzling Games. All rights reserved.</div>
+  <p>Guzzling Games and its game names, rules, designs, and content are protected works. Unauthorized reproduction or distribution is prohibited.</p>
+  <p><strong>Drink responsibly.</strong> For entertainment only. You must be of legal drinking age (21+ in the U.S.) to consume alcohol — and you never have to: every game plays just as well with any non-alcoholic beverage. Never drink and drive. By using this site you agree the creators assume no liability for any injury, loss, or damage arising from its use. Play at your own risk.</p>
+</footer>
+
+<div class="modal-overlay hidden" id="rules-modal">
+  <div class="modal">
+    <button class="close-x" id="rules-close">Close</button>
+    <h2>HOW TO PLAY</h2>
+    <p>Sit in a circle around a center cup. On your turn, draw a card and do what it says, then pass to the next player. Each card has a rule:</p>
+    <div class="rule-line"><b>A — Waterfall:</b> everyone drinks; you can't stop until the person to your right stops.</div>
+    <div class="rule-line"><b>2 — You:</b> point at someone, they drink.</div>
+    <div class="rule-line"><b>3 — Me:</b> you drew it, you drink.</div>
+    <div class="rule-line"><b>4 — Floor:</b> last person to touch the floor drinks.</div>
+    <div class="rule-line"><b>5 — Guys:</b> all the guys drink.</div>
+    <div class="rule-line"><b>6 — Chicks:</b> all the girls drink.</div>
+    <div class="rule-line"><b>7 — Heaven:</b> last person to raise a hand drinks.</div>
+    <div class="rule-line"><b>8 — Mate:</b> pick a drinking buddy who drinks whenever you do.</div>
+    <div class="rule-line"><b>9 — Rhyme:</b> say a word; go around rhyming. First to fail drinks.</div>
+    <div class="rule-line"><b>10 — Categories:</b> pick a category; name things in turn. First to blank drinks.</div>
+    <div class="rule-line"><b>J — Never Have I Ever:</b> three fingers; anyone who's done it drops one and drinks.</div>
+    <div class="rule-line"><b>Q — Question Master:</b> answer the drawer's questions and you drink — until the next queen.</div>
+    <div class="rule-line"><b>K — King's Cup:</b> pour into the center cup. The fourth king drinks it all — game over.</div>
+  </div>
+</div>
+<script>
+(function(){var o=document.getElementById('rules-open'),m=document.getElementById('rules-modal'),c=document.getElementById('rules-close');
+o.onclick=function(){m.classList.remove('hidden');};c.onclick=function(){m.classList.add('hidden');};
+m.onclick=function(e){if(e.target===m)m.classList.add('hidden');};})();
+</script>
+
+<script>
+(function(){
+  const SUITS=[{s:'\u2660',red:false},{s:'\u2663',red:false},{s:'\u2665',red:true},{s:'\u2666',red:true}];
+  const RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const RULES={
+    'A':{t:'Waterfall',d:'Everyone starts drinking together. You stop when you want, but no one can stop until the person to their right stops.'},
+    '2':{t:'You',d:'Point at someone — they take a drink.'},
+    '3':{t:'Me',d:'You drew it, you drink.'},
+    '4':{t:'Floor',d:'Last person to touch the floor drinks.'},
+    '5':{t:'Guys',d:'All the guys drink.'},
+    '6':{t:'Chicks',d:'All the girls drink.'},
+    '7':{t:'Heaven',d:'Last person to raise a hand to the sky drinks.'},
+    '8':{t:'Mate',d:'Pick a drinking buddy — they drink whenever you do for the rest of the game.'},
+    '9':{t:'Rhyme',d:'Say a word; go around the circle rhyming. First to fail or repeat drinks.'},
+    '10':{t:'Categories',d:'Pick a category. Go around naming things in it. First to blank drinks.'},
+    'J':{t:'Never Have I Ever',d:'Hold up three fingers. Say something you\u2019ve never done; anyone who has drops a finger and drinks. (or play it as Thumbmaster.)'},
+    'Q':{t:'Question Master',d:'You\u2019re the Question Master. Anyone who answers a question you ask must drink \u2014 until the next queen.'},
+    'K':{t:'King\u2019s Cup',d:'Pour some of your drink into the center cup. The fourth king drinks the whole thing.'},
+  };
+
+  function freshDeck(){
+    const d=[];
+    SUITS.forEach(su=>RANKS.forEach(r=>d.push({rank:r,suit:su.s,red:su.red})));
+    for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+    return d;
+  }
+
+  const els={};
+  ['players-list','add-player','remove-player','start','game','setup','over','cards-left','kings-left','kings-row','turn','card','rule-box','rule-card','rule-title','rule-text','next','over-text','over-sub','play-again']
+    .forEach(id=>els[id]=document.getElementById(id));
+
+  let players=['Player 1','Player 2','Player 3'];
+  const state={players:[],idx:0,deck:[],kings:0,drawnThisTurn:false};
+
+  function renderPlayers(){
+    els['players-list'].innerHTML='';
+    players.forEach((p,i)=>{
+      const inp=document.createElement('input');
+      inp.value=p;inp.placeholder='Player '+(i+1);
+      inp.style.cssText='width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);background:#0e0e15;color:var(--text);font-family:inherit;font-size:15px';
+      inp.addEventListener('input',e=>players[i]=e.target.value);
+      els['players-list'].appendChild(inp);
+    });
+  }
+  els['add-player'].onclick=()=>{if(players.length<16){players.push('Player '+(players.length+1));renderPlayers();}};
+  els['remove-player'].onclick=()=>{if(players.length>1){players.pop();renderPlayers();}};
+  els['start'].onclick=start;
+  els['play-again'].onclick=()=>{els.over.classList.add('hidden');start();};
+
+  function start(){
+    state.players=players.map((p,i)=>p.trim()||('Player '+(i+1)));
+    state.idx=0;state.deck=freshDeck();state.kings=0;state.drawnThisTurn=false;
+    els.setup.classList.add('hidden');els.over.classList.add('hidden');
+    els.game.classList.remove('hidden');
+    updateCounts();renderKings();
+    resetCardForTurn();
+  }
+
+  function updateCounts(){
+    els['cards-left'].textContent=state.deck.length;
+    els['kings-left'].textContent=4-state.kings;
+  }
+  function renderKings(){
+    els['kings-row'].innerHTML='';
+    for(let i=0;i<4;i++){
+      const d=document.createElement('div');
+      d.className='king-pip'+(i<state.kings?' lit':'');
+      d.textContent='K';
+      els['kings-row'].appendChild(d);
+    }
+  }
+
+  function resetCardForTurn(){
+    state.drawnThisTurn=false;
+    els.turn.innerHTML='Up next: <b>'+state.players[state.idx]+'</b>';
+    els.card.className='card facedown';els.card.textContent='DRAW';
+    els['rule-card'].textContent='Tap the deck to draw';
+    els['rule-title'].textContent='\u2014';
+    els['rule-text'].textContent='';
+    els.next.classList.add('hidden');
+    els.card.onclick=draw;
+  }
+
+  function draw(){
+    if(state.drawnThisTurn)return;
+    state.drawnThisTurn=true;
+    const card=state.deck.pop();
+    const rule=RULES[card.rank];
+
+    els.card.className='card'+(card.red?' red':'');
+    els.card.onclick=null;
+    els.card.innerHTML='<div class="c-top">'+card.rank+' '+card.suit+'</div>'+
+                       '<div class="c-mid">'+card.suit+'</div>'+
+                       '<div class="c-bot">'+card.rank+' '+card.suit+'</div>';
+
+    els['rule-card'].textContent=state.players[state.idx]+' drew '+card.rank;
+    els['rule-title'].textContent=rule.t;
+    els['rule-text'].textContent=rule.d;
+
+    if(card.rank==='K'){
+      state.kings++;
+      renderKings();
+      if(state.kings>=4){updateCounts();return gameOver();}
+    }
+    updateCounts();
+
+    if(state.deck.length===0){ // deck empty without 4 kings (rare) — end
+      els.next.classList.remove('hidden');
+      els.next.textContent='Deck empty — finish';
+      els.next.onclick=()=>gameOver(true);
+      return;
+    }
+    els.next.classList.remove('hidden');
+    els.next.textContent='Next player';
+    els.next.onclick=()=>{state.idx=(state.idx+1)%state.players.length;resetCardForTurn();};
+  }
+
+  function gameOver(deckEmpty){
+    els.game.classList.add('hidden');
+    els.over.classList.remove('hidden');
+    if(deckEmpty){
+      els['over-text'].textContent='Deck\u2019s empty!';
+      els['over-sub'].textContent='All 52 cards drawn and the cup survived. Pour it out or fight over it.';
+    }else{
+      els['over-text'].textContent=state.players[state.idx]+' drew the 4th King!';
+      els['over-sub'].textContent=state.players[state.idx]+' drinks the King\u2019s Cup. Game over.';
+    }
+  }
+
+  renderPlayers();
+})();
+</script>
+</body>
+</html>
