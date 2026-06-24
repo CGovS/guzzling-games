@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="116" fill="#0b0b10"/>
+  <rect x="16" y="16" width="480" height="480" rx="100" fill="none" stroke="#f6f1e7" stroke-opacity="0.10" stroke-width="6"/>
+  <g font-family="Impact, 'Anton', 'Arial Narrow Bold', 'Arial Black', sans-serif" font-weight="400" font-size="300" text-anchor="middle">
+    <!-- hard screen-print offset shadow -->
+    <text x="264" y="372" fill="#ff5a3c" letter-spacing="-18">GG</text>
+    <!-- cream G + lime G, matching the GUZZLING / GAMES wordmark -->
+    <text x="256" y="364" letter-spacing="-18"><tspan fill="#f6f1e7">G</tspan><tspan fill="#c2ff1f">G</tspan></text>
+  </g>
+</svg>
