@@ -60,12 +60,13 @@
   .gg-top{position:fixed;top:12px;right:14px;z-index:20;display:flex;gap:8px;align-items:center}
   .rules-btn{font-family:inherit;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:var(--accent);border:none;padding:7px 14px;border-radius:20px}
   .rules-btn:active{transform:scale(.97)}
-  .gg-lockup{position:fixed;top:12px;left:14px;z-index:20;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-decoration:none}
+  .gg-lockup{position:fixed;top:12px;left:14px;z-index:20;display:flex;flex-direction:row;align-items:center;gap:9px;text-decoration:none}
+  .gg-stack{display:flex;flex-direction:column;align-items:center;gap:4px}
   .gg-flag{font-family:'Oswald',system-ui,sans-serif;font-size:7px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0b0b10;background:#c2ff1f;padding:3px 7px;border-radius:2px;transform:rotate(-1.5deg);box-shadow:1.5px 1.5px 0 rgba(0,0,0,.35)}
-  .gg-id{display:flex;align-items:center;gap:9px}
   .gg-logo{font-family:'Anton','Oswald',sans-serif;font-weight:400;text-transform:uppercase;font-size:27px;line-height:.9;letter-spacing:.5px;color:#f6f1e7;text-shadow:3px 3px 0 #ff5a3c;white-space:nowrap}
   .gg-logo .gm{color:#c2ff1f;text-shadow:3px 3px 0 rgba(0,0,0,.45)}
   .gg-acro{font-family:'Anton','Oswald',sans-serif;font-size:18px;line-height:1;color:#0b0b10;background:#c2ff1f;padding:5px 8px 4px;border-radius:7px}
+  .gg-ver{font-family:'Oswald',system-ui,sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:#c2ff1f;background:rgba(194,255,31,.12);border:1px solid rgba(194,255,31,.45);padding:5px 9px;border-radius:99px;white-space:nowrap}
   .gg-lockup:active{transform:scale(.97)}
   .modal-overlay{position:fixed;inset:0;background:rgba(5,5,9,.88);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;z-index:100}
   .modal-overlay.hidden{display:none}
@@ -81,13 +82,14 @@
 </head>
 <body>
 <a class="gg-lockup" href="../../v1.2/" title="Guzzling Games — home" aria-label="Guzzling Games home">
-  <span class="gg-flag">Pour &amp; Play</span>
-  <span class="gg-id">
+  <span class="gg-stack">
+    <span class="gg-flag">Pour &amp; Play</span>
     <span class="gg-logo">GUZZLING <span class="gm">GAMES</span></span>
-    <span class="gg-acro">RTB</span>
   </span>
+  <span class="gg-acro">RTB</span>
 </a>
 <div class="gg-top">
+  <span class="gg-ver">v1.2</span>
   <button class="rules-btn" id="rules-open">Rules</button>
   <a class="back" href="../../v1.2/">All games</a>
 </div>
