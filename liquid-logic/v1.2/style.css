@@ -360,7 +360,7 @@ input:checked + .slider::before { transform: translateX(24px); background: #000;
   justify-content: space-between;
   align-items: center;
   background: var(--container);
-  padding: 10px 20px 10px 210px;
+  padding: 10px 20px 10px 248px;
   border-bottom: var(--bwidth) var(--bstyle) var(--border);
   position: sticky;
   top: 0;
@@ -956,4 +956,15 @@ input:checked + .slider::before { transform: translateX(24px); background: #000;
   letter-spacing: 0.5px;
   color: var(--accent, #f39c12);
   word-break: break-all;
+}
+
+/* Corner Guzzling Games lockup — scale down on small screens so it
+   doesn't overlap the game-board header / title on phones. */
+@media (max-width: 760px) {
+  .gg-corner { transform: scale(0.74); transform-origin: top left; }
+  .game-header { padding-left: 188px; }
+}
+@media (max-width: 480px) {
+  .gg-corner { transform: scale(0.6); transform-origin: top left; }
+  .game-header { padding-left: 150px; }
 }
