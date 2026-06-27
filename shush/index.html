@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shhhhhhhh</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #080810;
+      color: #ddd5c8;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .icon {
+      font-size: clamp(3rem, 10vw, 6rem);
+      margin-bottom: 1.5rem;
+      animation: breathe 4s ease-in-out infinite;
+    }
+
+    .shh {
+      font-size: clamp(3rem, 14vw, 10rem);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      color: #c4b49a;
+      line-height: 1;
+      animation: appear 1.8s ease-out both;
+    }
+
+    .phrase-wrap {
+      margin-top: 2.5rem;
+      text-align: center;
+      min-height: 5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .phrase {
+      font-size: clamp(1rem, 3.5vw, 1.8rem);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      color: #ddd5c8;
+    }
+
+    .lang {
+      font-size: 0.7rem;
+      letter-spacing: 0.55em;
+      text-transform: uppercase;
+      color: #5a5248;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.15s;
+    }
+
+    .phrase.show { opacity: 1; transform: translateY(0); }
+    .lang.show    { opacity: 1; }
+
+    .hint {
+      position: fixed;
+      bottom: 2.5rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: #3a3530;
+      transition: opacity 1s ease;
+    }
+    .hint.hidden { opacity: 0; pointer-events: none; }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="icon">🤫</div>
+  <div class="shh">Shhhhhhhhh</div>
+
+  <div class="phrase-wrap">
+    <div class="phrase" id="phrase"></div>
+    <div class="lang"   id="lang"></div>
+  </div>
+
+  <div class="hint" id="hint">Touchez pour commencer</div>
+
+  <script>
+    const phrases = [
+      { text: "Silence, s'il vous plaît", label: 'Français'  },
+      { text: 'Quiet, please',             label: 'English'   },
+      { text: 'Silencio, por favor',        label: 'Español'   },
+    ];
+
+    const phraseEl = document.getElementById('phrase');
+    const langEl   = document.getElementById('lang');
+    const hintEl   = document.getElementById('hint');
+
+    let started = false;
+
+    /* ── Find the best French female voice ── */
+    function frenchFemaleVoice() {
+      const voices = speechSynthesis.getVoices();
+      const frFemale = voices.find(v =>
+        v.lang.startsWith('fr') && /female|woman|femme|féminin/i.test(v.name)
+      );
+      return frFemale || voices.find(v => v.lang.startsWith('fr')) || null;
+    }
+
+    /* ── Display a phrase with fade ── */
+    function showPhrase(text, label) {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+      setTimeout(() => {
+        phraseEl.textContent = text;
+        langEl.textContent   = label;
+        phraseEl.classList.add('show');
+        langEl.classList.add('show');
+      }, 250);
+    }
+
+    function clearPhrase() {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+    }
+
+    /* ── Speak one utterance, always with French voice → French accent ── */
+    function utter(text, rate, pitch, onEnd) {
+      const u   = new SpeechSynthesisUtterance(text);
+      u.lang    = 'fr-FR';
+      u.rate    = rate;
+      u.pitch   = pitch;
+      u.volume  = 1;
+      const v   = frenchFemaleVoice();
+      if (v) u.voice = v;
+      u.onend   = onEnd;
+      u.onerror = onEnd;
+      speechSynthesis.speak(u);
+    }
+
+    /* ── Main sequence ── */
+    function playSequence() {
+      speechSynthesis.cancel();
+      clearPhrase();
+
+      utter('Shhhhhhhhh', 0.35, 1.1, () => {
+        let i = 0;
+        function next() {
+          if (i >= phrases.length) { clearPhrase(); return; }
+          const { text, label } = phrases[i++];
+          showPhrase(text, label);
+          utter(text, 0.78, 1.15, () => setTimeout(next, 700));
+        }
+        setTimeout(next, 500);
+      });
+    }
+
+    /* ── Start on first interaction (browsers require a gesture for audio) ── */
+    function start() {
+      if (started) { playSequence(); return; }
+      started = true;
+      hintEl.classList.add('hidden');
+      playSequence();
+    }
+
+    document.body.addEventListener('click',     start);
+    document.body.addEventListener('touchstart', start, { passive: true });
+
+    /* ── Attempt autoplay once voices are loaded ── */
+    function tryAutoplay() {
+      if (started) return;
+      try { start(); } catch (e) { /* blocked by browser policy — hint remains */ }
+    }
+
+    if (speechSynthesis.getVoices().length > 0) {
+      tryAutoplay();
+    } else {
+      speechSynthesis.addEventListener('voiceschanged', tryAutoplay, { once: true });
+    }
+  </script>
+</body>
+</html>
