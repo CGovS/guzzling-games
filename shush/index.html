@@ -16,15 +16,16 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      cursor: pointer;
       user-select: none;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .icon {
       font-size: clamp(3rem, 10vw, 6rem);
       margin-bottom: 1.5rem;
       animation: breathe 4s ease-in-out infinite;
+      pointer-events: none;
     }
 
     .shh {
@@ -34,6 +35,7 @@
       color: #c4b49a;
       line-height: 1;
       animation: appear 1.8s ease-out both;
+      pointer-events: none;
     }
 
     .phrase-wrap {
@@ -44,6 +46,7 @@
       flex-direction: column;
       align-items: center;
       gap: 0.5rem;
+      pointer-events: none;
     }
 
     .phrase {
@@ -53,7 +56,6 @@
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.6s ease, transform 0.6s ease;
-      color: #ddd5c8;
     }
 
     .lang {
@@ -68,16 +70,41 @@
     .phrase.show { opacity: 1; transform: translateY(0); }
     .lang.show    { opacity: 1; }
 
-    .hint {
+    /* Big tap target — the whole bottom area */
+    #tap-btn {
       position: fixed;
-      bottom: 2.5rem;
-      font-size: 0.7rem;
-      letter-spacing: 0.45em;
-      text-transform: uppercase;
-      color: #3a3530;
-      transition: opacity 1s ease;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 3rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      -webkit-appearance: none;
     }
-    .hint.hidden { opacity: 0; pointer-events: none; }
+
+    #tap-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: #6a6058;
+      border: 1px solid #3a3530;
+      padding: 0.8rem 2rem;
+      transition: opacity 0.8s ease, color 0.3s, border-color 0.3s;
+      border-radius: 2px;
+    }
+
+    #tap-btn:active #tap-label,
+    #tap-btn:hover  #tap-label {
+      color: #c4b49a;
+      border-color: #6a6058;
+    }
+
+    #tap-btn.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
 
     @keyframes breathe {
       0%, 100% { transform: scale(1); }
@@ -100,31 +127,21 @@
     <div class="lang"   id="lang"></div>
   </div>
 
-  <div class="hint" id="hint">Touchez pour commencer</div>
+  <button id="tap-btn" aria-label="Play">
+    <span id="tap-label">Touchez pour commencer</span>
+  </button>
 
   <script>
     const phrases = [
-      { text: "Silence, s'il vous plaît", label: 'Français'  },
-      { text: 'Quiet, please',             label: 'English'   },
-      { text: 'Silencio, por favor',        label: 'Español'   },
+      { text: "Silence, s'il vous plaît", label: 'Français' },
+      { text: 'Quiet, please',             label: 'English'  },
+      { text: 'Silencio, por favor',        label: 'Español'  },
     ];
 
     const phraseEl = document.getElementById('phrase');
     const langEl   = document.getElementById('lang');
-    const hintEl   = document.getElementById('hint');
+    const tapBtn   = document.getElementById('tap-btn');
 
-    let started = false;
-
-    /* ── Find the best French female voice ── */
-    function frenchFemaleVoice() {
-      const voices = speechSynthesis.getVoices();
-      const frFemale = voices.find(v =>
-        v.lang.startsWith('fr') && /female|woman|femme|féminin/i.test(v.name)
-      );
-      return frFemale || voices.find(v => v.lang.startsWith('fr')) || null;
-    }
-
-    /* ── Display a phrase with fade ── */
     function showPhrase(text, label) {
       phraseEl.classList.remove('show');
       langEl.classList.remove('show');
@@ -141,59 +158,49 @@
       langEl.classList.remove('show');
     }
 
-    /* ── Speak one utterance, always with French voice → French accent ── */
+    /*
+     * Speak with lang='fr-FR' for every utterance.
+     * iOS will use its French TTS engine (Amelie/voice Amélie — female)
+     * for ALL text, giving a French accent to English and Spanish too.
+     * We deliberately do NOT call getVoices() or set .voice —
+     * that API is unreliable on iOS and causes silent failures.
+     */
     function utter(text, rate, pitch, onEnd) {
-      const u   = new SpeechSynthesisUtterance(text);
-      u.lang    = 'fr-FR';
-      u.rate    = rate;
-      u.pitch   = pitch;
-      u.volume  = 1;
-      const v   = frenchFemaleVoice();
-      if (v) u.voice = v;
-      u.onend   = onEnd;
-      u.onerror = onEnd;
-      speechSynthesis.speak(u);
+      const u  = new SpeechSynthesisUtterance(text);
+      u.lang   = 'fr-FR';
+      u.rate   = rate;
+      u.pitch  = pitch;
+      u.volume = 1;
+      u.onend  = onEnd;
+      u.onerror = () => { if (onEnd) onEnd(); };
+      // iOS sometimes pauses synthesis between interactions
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      window.speechSynthesis.speak(u);
     }
 
-    /* ── Main sequence ── */
     function playSequence() {
-      speechSynthesis.cancel();
+      window.speechSynthesis.cancel();
       clearPhrase();
 
-      utter('Shhhhhhhhh', 0.35, 1.1, () => {
-        let i = 0;
-        function next() {
-          if (i >= phrases.length) { clearPhrase(); return; }
-          const { text, label } = phrases[i++];
-          showPhrase(text, label);
-          utter(text, 0.78, 1.15, () => setTimeout(next, 700));
-        }
-        setTimeout(next, 500);
-      });
+      // Small delay after cancel() — required on iOS
+      setTimeout(() => {
+        utter('Shhhhhhhhh', 0.32, 1.1, () => {
+          let i = 0;
+          function next() {
+            if (i >= phrases.length) { clearPhrase(); return; }
+            const { text, label } = phrases[i++];
+            showPhrase(text, label);
+            utter(text, 0.75, 1.15, () => setTimeout(next, 750));
+          }
+          setTimeout(next, 500);
+        });
+      }, 50);
     }
 
-    /* ── Start on first interaction (browsers require a gesture for audio) ── */
-    function start() {
-      if (started) { playSequence(); return; }
-      started = true;
-      hintEl.classList.add('hidden');
+    tapBtn.addEventListener('click', () => {
+      tapBtn.classList.add('hidden');
       playSequence();
-    }
-
-    document.body.addEventListener('click',     start);
-    document.body.addEventListener('touchstart', start, { passive: true });
-
-    /* ── Attempt autoplay once voices are loaded ── */
-    function tryAutoplay() {
-      if (started) return;
-      try { start(); } catch (e) { /* blocked by browser policy — hint remains */ }
-    }
-
-    if (speechSynthesis.getVoices().length > 0) {
-      tryAutoplay();
-    } else {
-      speechSynthesis.addEventListener('voiceschanged', tryAutoplay, { once: true });
-    }
+    });
   </script>
 </body>
 </html>
