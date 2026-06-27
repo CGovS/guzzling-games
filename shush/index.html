@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shhhhhhhh</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #080810;
+      color: #ddd5c8;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon {
+      font-size: clamp(3rem, 10vw, 6rem);
+      margin-bottom: 1.5rem;
+      animation: breathe 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .shh {
+      font-size: clamp(3rem, 14vw, 10rem);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      color: #c4b49a;
+      line-height: 1;
+      animation: appear 1.8s ease-out both;
+      pointer-events: none;
+    }
+
+    .phrase-wrap {
+      margin-top: 2.5rem;
+      text-align: center;
+      min-height: 5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .phrase {
+      font-size: clamp(1rem, 3.5vw, 1.8rem);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .lang {
+      font-size: 0.7rem;
+      letter-spacing: 0.55em;
+      text-transform: uppercase;
+      color: #5a5248;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.15s;
+    }
+
+    .phrase.show { opacity: 1; transform: translateY(0); }
+    .lang.show    { opacity: 1; }
+
+    /* ── Play button ── */
+    #play-btn {
+      margin-top: 3.5rem;
+      width: clamp(5rem, 20vw, 7rem);
+      height: clamp(5rem, 20vw, 7rem);
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      background: transparent;
+      cursor: pointer;
+      -webkit-appearance: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      color: #3a3530;
+      transition: color 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease, transform 0.15s ease;
+      position: relative;
+    }
+
+    #play-btn:active { transform: scale(0.93); }
+
+    /* States set via JS by adding a data-state attribute */
+    #play-btn[data-state="idle"] {
+      color: #6a6058;
+      box-shadow: none;
+    }
+
+    #play-btn[data-state="shh"] {
+      color: #a78bfa;
+      border-color: #a78bfa;
+      box-shadow: 0 0 28px 6px #a78bfa55, 0 0 60px 10px #a78bfa22;
+      animation: pulse-ring 1.2s ease-in-out infinite;
+    }
+
+    #play-btn[data-state="fr"] {
+      color: #60a5fa;
+      border-color: #60a5fa;
+      box-shadow: 0 0 28px 6px #60a5fa55, 0 0 60px 10px #60a5fa22;
+      animation: pulse-ring 1.4s ease-in-out infinite;
+    }
+
+    #play-btn[data-state="en"] {
+      color: #fbbf24;
+      border-color: #fbbf24;
+      box-shadow: 0 0 28px 6px #fbbf2455, 0 0 60px 10px #fbbf2422;
+      animation: pulse-ring 1.4s ease-in-out infinite;
+    }
+
+    #play-btn[data-state="es"] {
+      color: #f87171;
+      border-color: #f87171;
+      box-shadow: 0 0 28px 6px #f8717155, 0 0 60px 10px #f8717122;
+      animation: pulse-ring 1.4s ease-in-out infinite;
+    }
+
+    #play-btn[data-state="done"] {
+      color: #6a6058;
+      box-shadow: none;
+      animation: none;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 20px 4px currentColor33, 0 0 50px 8px currentColor11; }
+      50%       { box-shadow: 0 0 36px 10px currentColor66, 0 0 70px 16px currentColor33; }
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="icon">🤫</div>
+  <div class="shh">Shhhhhhhhh</div>
+
+  <div class="phrase-wrap">
+    <div class="phrase" id="phrase"></div>
+    <div class="lang"   id="lang"></div>
+  </div>
+
+  <button id="play-btn" data-state="idle" aria-label="Play">▶</button>
+
+  <script>
+    const phrases = [
+      { text: "Silence, s'il vous plaît", label: 'Français', state: 'fr' },
+      { text: 'Quiet, please',             label: 'English',  state: 'en' },
+      { text: 'Silencio, por favor',        label: 'Español',  state: 'es' },
+    ];
+
+    const phraseEl = document.getElementById('phrase');
+    const langEl   = document.getElementById('lang');
+    const btn      = document.getElementById('play-btn');
+
+    let playing = false;
+
+    function setState(s) {
+      btn.setAttribute('data-state', s);
+      btn.textContent = (s === 'idle' || s === 'done') ? '▶' : '◼';
+    }
+
+    function showPhrase(text, label) {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+      setTimeout(() => {
+        phraseEl.textContent = text;
+        langEl.textContent   = label;
+        phraseEl.classList.add('show');
+        langEl.classList.add('show');
+      }, 250);
+    }
+
+    function clearPhrase() {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+    }
+
+    /*
+     * Always use lang='fr-FR' — iOS uses its Amélie (French female) voice
+     * for all text, giving a French accent to English and Spanish too.
+     * Do NOT call getVoices() or set .voice — unreliable on iOS.
+     */
+    function utter(text, rate, pitch, onEnd) {
+      const u  = new SpeechSynthesisUtterance(text);
+      u.lang   = 'fr-FR';
+      u.rate   = rate;
+      u.pitch  = pitch;
+      u.volume = 1;
+      u.onend  = onEnd;
+      u.onerror = () => { if (onEnd) onEnd(); };
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      window.speechSynthesis.speak(u);
+    }
+
+    function stop() {
+      window.speechSynthesis.cancel();
+      clearPhrase();
+      setState('done');
+      setTimeout(() => setState('idle'), 600);
+      playing = false;
+    }
+
+    function playSequence() {
+      playing = true;
+      window.speechSynthesis.cancel();
+      clearPhrase();
+
+      setTimeout(() => {
+        setState('shh');
+        utter('Shhhhhhhhh', 0.32, 1.1, () => {
+          let i = 0;
+          function next() {
+            if (i >= phrases.length) {
+              clearPhrase();
+              setState('done');
+              setTimeout(() => { setState('idle'); playing = false; }, 800);
+              return;
+            }
+            const { text, label, state } = phrases[i++];
+            setState(state);
+            showPhrase(text, label);
+            utter(text, 0.75, 1.15, () => setTimeout(next, 750));
+          }
+          setTimeout(next, 500);
+        });
+      }, 50);
+    }
+
+    btn.addEventListener('click', () => {
+      if (playing) {
+        stop();
+      } else {
+        playSequence();
+      }
+    });
+  </script>
+</body>
+</html>
