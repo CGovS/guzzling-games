@@ -194,6 +194,45 @@
     }
 
     /*
+     * Shush sound via Web Audio API — filtered noise shaped like a real "shh".
+     * TTS can't pronounce "Shhhhhhh" correctly in any language.
+     */
+    function playShush(duration, onEnd) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+
+      const samples = ctx.sampleRate * duration;
+      const buf = ctx.createBuffer(1, samples, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < samples; i++) data[i] = Math.random() * 2 - 1;
+
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+
+      // High-pass to remove rumble, then bandpass for the "sh" character
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 1800;
+
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 5000;
+      bp.Q.value = 0.6;
+
+      const gain = ctx.createGain();
+      const t = ctx.currentTime;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.35, t + 0.25);       // fade in
+      gain.gain.setValueAtTime(0.35, t + duration - 0.6);
+      gain.gain.linearRampToValueAtTime(0, t + duration);       // fade out
+
+      src.connect(hp); hp.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+      src.start(t);
+      src.stop(t + duration);
+      src.onended = () => { ctx.close(); if (onEnd) onEnd(); };
+    }
+
+    /*
      * Always use lang='fr-FR' — iOS uses its Amélie (French female) voice
      * for all text, giving a French accent to English and Spanish too.
      * Do NOT call getVoices() or set .voice — unreliable on iOS.
@@ -223,25 +262,23 @@
       window.speechSynthesis.cancel();
       clearPhrase();
 
-      setTimeout(() => {
-        setState('shh');
-        utter('Shhhhhhhhh', 0.32, 1.1, () => {
-          let i = 0;
-          function next() {
-            if (i >= phrases.length) {
-              clearPhrase();
-              setState('done');
-              setTimeout(() => { setState('idle'); playing = false; }, 800);
-              return;
-            }
-            const { text, label, state } = phrases[i++];
-            setState(state);
-            showPhrase(text, label);
-            utter(text, 0.75, 1.15, () => setTimeout(next, 750));
+      setState('shh');
+      playShush(2.8, () => {
+        let i = 0;
+        function next() {
+          if (i >= phrases.length) {
+            clearPhrase();
+            setState('done');
+            setTimeout(() => { setState('idle'); playing = false; }, 800);
+            return;
           }
-          setTimeout(next, 500);
-        });
-      }, 50);
+          const { text, label, state } = phrases[i++];
+          setState(state);
+          showPhrase(text, label);
+          utter(text, 0.75, 1.15, () => setTimeout(next, 750));
+        }
+        setTimeout(next, 400);
+      });
     }
 
     btn.addEventListener('click', () => {
