@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shhhhhhhh</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #080810;
+      color: #ddd5c8;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon {
+      font-size: clamp(3rem, 10vw, 6rem);
+      margin-bottom: 1.5rem;
+      animation: breathe 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .shh {
+      font-size: clamp(3rem, 14vw, 10rem);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      color: #c4b49a;
+      line-height: 1;
+      animation: appear 1.8s ease-out both;
+      pointer-events: none;
+    }
+
+    .phrase-wrap {
+      margin-top: 2.5rem;
+      text-align: center;
+      min-height: 5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .phrase {
+      font-size: clamp(1rem, 3.5vw, 1.8rem);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .lang {
+      font-size: 0.7rem;
+      letter-spacing: 0.55em;
+      text-transform: uppercase;
+      color: #5a5248;
+      opacity: 0;
+      transition: opacity 0.6s ease 0.15s;
+    }
+
+    .phrase.show { opacity: 1; transform: translateY(0); }
+    .lang.show    { opacity: 1; }
+
+    /* Big tap target — the whole bottom area */
+    #tap-btn {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 3rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+
+    #tap-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: #6a6058;
+      border: 1px solid #3a3530;
+      padding: 0.8rem 2rem;
+      transition: opacity 0.8s ease, color 0.3s, border-color 0.3s;
+      border-radius: 2px;
+    }
+
+    #tap-btn:active #tap-label,
+    #tap-btn:hover  #tap-label {
+      color: #c4b49a;
+      border-color: #6a6058;
+    }
+
+    #tap-btn.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="icon">🤫</div>
+  <div class="shh">Shhhhhhhhh</div>
+
+  <div class="phrase-wrap">
+    <div class="phrase" id="phrase"></div>
+    <div class="lang"   id="lang"></div>
+  </div>
+
+  <button id="tap-btn" aria-label="Play">
+    <span id="tap-label">Touchez pour commencer</span>
+  </button>
+
+  <script>
+    const phrases = [
+      { text: "Silence, s'il vous plaît", label: 'Français' },
+      { text: 'Quiet, please',             label: 'English'  },
+      { text: 'Silencio, por favor',        label: 'Español'  },
+    ];
+
+    const phraseEl = document.getElementById('phrase');
+    const langEl   = document.getElementById('lang');
+    const tapBtn   = document.getElementById('tap-btn');
+
+    function showPhrase(text, label) {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+      setTimeout(() => {
+        phraseEl.textContent = text;
+        langEl.textContent   = label;
+        phraseEl.classList.add('show');
+        langEl.classList.add('show');
+      }, 250);
+    }
+
+    function clearPhrase() {
+      phraseEl.classList.remove('show');
+      langEl.classList.remove('show');
+    }
+
+    /*
+     * Speak with lang='fr-FR' for every utterance.
+     * iOS will use its French TTS engine (Amelie/voice Amélie — female)
+     * for ALL text, giving a French accent to English and Spanish too.
+     * We deliberately do NOT call getVoices() or set .voice —
+     * that API is unreliable on iOS and causes silent failures.
+     */
+    function utter(text, rate, pitch, onEnd) {
+      const u  = new SpeechSynthesisUtterance(text);
+      u.lang   = 'fr-FR';
+      u.rate   = rate;
+      u.pitch  = pitch;
+      u.volume = 1;
+      u.onend  = onEnd;
+      u.onerror = () => { if (onEnd) onEnd(); };
+      // iOS sometimes pauses synthesis between interactions
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      window.speechSynthesis.speak(u);
+    }
+
+    function playSequence() {
+      window.speechSynthesis.cancel();
+      clearPhrase();
+
+      // Small delay after cancel() — required on iOS
+      setTimeout(() => {
+        utter('Shhhhhhhhh', 0.32, 1.1, () => {
+          let i = 0;
+          function next() {
+            if (i >= phrases.length) { clearPhrase(); return; }
+            const { text, label } = phrases[i++];
+            showPhrase(text, label);
+            utter(text, 0.75, 1.15, () => setTimeout(next, 750));
+          }
+          setTimeout(next, 500);
+        });
+      }, 50);
+    }
+
+    tapBtn.addEventListener('click', () => {
+      tapBtn.classList.add('hidden');
+      playSequence();
+    });
+  </script>
+</body>
+</html>
