@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://guzzlinggames.com/v1.2/</loc>
+    <loc>https://guzzlinggames.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://guzzlinggames.com/liquid-logic/v1.2/</loc>
+    <loc>https://guzzlinggames.com/liquid-logic/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://guzzlinggames.com/kings-cup/v1.2/</loc>
-    <changefreq>monthly</changefreq>
+    <loc>https://guzzlinggames.com/kings-cup/</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://guzzlinggames.com/ride-the-bus/v1.2/</loc>
-    <changefreq>monthly</changefreq>
+    <loc>https://guzzlinggames.com/ride-the-bus/</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://guzzlinggames.com/bfl/v1.2/</loc>
-    <changefreq>monthly</changefreq>
+    <loc>https://guzzlinggames.com/bfl/</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 </urlset>
